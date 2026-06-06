@@ -13,6 +13,7 @@ type Employee = {
   id: string;
   employee_code: string;
   name: string;
+  employee_type: string;
   department: string;
   job_title: string;
   phone: string;
@@ -26,6 +27,10 @@ type Employee = {
 
 function money(value: number | string) {
   return Number(value || 0).toLocaleString("ar-IQ");
+}
+
+function typeLabel(type: string) {
+  return type === "crew" ? "موظف طاقم (يدوي)" : "موظف مركز (QR)";
 }
 
 export default async function EmployeeDetailPage({
@@ -46,6 +51,7 @@ export default async function EmployeeDetailPage({
       id,
       COALESCE(employee_code, '') AS employee_code,
       name,
+      COALESCE(employee_type, 'center') AS employee_type,
       COALESCE(department, '') AS department,
       COALESCE(job_title, '') AS job_title,
       COALESCE(phone, '') AS phone,
@@ -70,10 +76,11 @@ export default async function EmployeeDetailPage({
     );
   }
 
-  const qr = await QRCode.toDataURL(emp.qr_token, {
+  const isCenter = emp.employee_type === "center";
+  const qr = isCenter ? await QRCode.toDataURL(emp.qr_token, {
     width: 240, margin: 2, errorCorrectionLevel: "M",
     color: { dark: "#1e3a5f", light: "#ffffff" },
-  });
+  }) : "";
 
   const summary = await getEmployeeMonthSummary(id, month);
   const records = await getEmployeeAttendance(id, month);
@@ -98,7 +105,12 @@ export default async function EmployeeDetailPage({
         <div>
           <div className="page-tag">&#128100; ملف الموظف</div>
           <h1>{emp.name}</h1>
-          <p>{emp.employee_code || "بدون كود"} · {emp.department || "بدون قسم"} · {emp.job_title || "بدون وصف وظيفي"}</p>
+          <p>
+            {emp.employee_code || "بدون كود"} · {emp.department || "بدون قسم"} · {emp.job_title || "بدون وصف وظيفي"} ·
+            <span className={`type-badge ${emp.employee_type === "crew" ? "badge-crew" : "badge-center"}`} style={{ marginRight: "6px" }}>
+              {typeLabel(emp.employee_type)}
+            </span>
+          </p>
         </div>
         <Link href="/admin/employees" className="btn btn-secondary">
           → العودة للموظفين
@@ -118,23 +130,38 @@ export default async function EmployeeDetailPage({
 
       <section className="employee-profile-layout">
         <aside className="card-elevated profile-side-card">
-          <div className="employee-qr profile-qr">
-            <img src={qr} alt={`QR ${emp.name}`} />
-          </div>
+          {isCenter ? (
+            <>
+              <div className="employee-qr profile-qr">
+                <img src={qr} alt={`QR ${emp.name}`} />
+              </div>
+              <form action={regenerateQr}>
+                <input type="hidden" name="id" value={emp.id} />
+                <button className="btn btn-ghost btn-sm" type="submit" style={{ justifySelf: "center" }}>🔄 توليد QR جديد</button>
+              </form>
+            </>
+          ) : (
+            <div className="crew-profile-icon">
+              <div style={{ fontSize: "64px", textAlign: "center" }}>🔧</div>
+              <div style={{ textAlign: "center", color: "var(--accent-dark)", fontWeight: 700, fontSize: "16px" }}>
+                موظف طاقم
+              </div>
+              <div style={{ textAlign: "center", color: "var(--muted)", fontSize: "13px" }}>
+                الحضور والرواتب تُدخل يدوياً
+              </div>
+            </div>
+          )}
           <span className={`badge-active ${emp.active ? "on" : "off"}`} style={{ justifySelf: "center", fontSize: "14px", padding: "6px 18px" }}>
             {emp.active ? "● موظف فعّال" : "○ موظف متوقف"}
           </span>
           <div className="profile-facts">
             <div><span>الكود</span><strong>{emp.employee_code || "—"}</strong></div>
+            <div><span>النوع</span><strong>{typeLabel(emp.employee_type)}</strong></div>
             <div><span>القسم</span><strong>{emp.department || "—"}</strong></div>
             <div><span>الهاتف</span><strong>{emp.phone || "—"}</strong></div>
             <div><span>المباشرة</span><strong>{emp.hire_date || "—"}</strong></div>
             <div><span>الدفع</span><strong>{emp.bank_account || "—"}</strong></div>
           </div>
-          <form action={regenerateQr}>
-            <input type="hidden" name="id" value={emp.id} />
-            <button className="btn btn-ghost btn-sm" type="submit">🔄 توليد QR جديد</button>
-          </form>
         </aside>
 
         <div style={{ display: "grid", gap: "20px" }}>
@@ -147,9 +174,11 @@ export default async function EmployeeDetailPage({
             </div>
             <form action={updateEmployee} className="professional-form-grid compact">
               <input type="hidden" name="id" value={emp.id} />
+              <input type="hidden" name="employee_type" value={emp.employee_type} />
               <div className="form-group">
                 <label className="form-label">كود الموظف</label>
-                <input className="form-input" name="employee_code" defaultValue={emp.employee_code} />
+                <input className="form-input" name="employee_code" defaultValue={emp.employee_code} readOnly style={{ background: "#f0f4ff", cursor: "not-allowed" }} />
+                <span className="form-hint">يتم توليده تلقائياً ولا يمكن تعديله</span>
               </div>
               <div className="form-group">
                 <label className="form-label">الاسم</label>
@@ -217,14 +246,16 @@ export default async function EmployeeDetailPage({
         <div className="section-heading">
           <div>
             <h2>📋 سجل الحضور — {monthLabel}</h2>
-            <p>الأيام المتوقعة لهذا الكشف: {expectedWorkdays.toLocaleString("ar-IQ")} يوم عمل.</p>
+            <p>الأيام المتوقعة لهذا الكشف: {expectedWorkdays.toLocaleString("ar-IQ")} يوم عمل. {isCenter ? "الحضور مسجل بواسطة QR." : "الحضور مدخل يدوياً."}</p>
           </div>
         </div>
         {records.length === 0 ? (
           <div className="empty-state" style={{ padding: "30px" }}>
             <div className="empty-icon" style={{ width: "56px", height: "56px", fontSize: "24px" }}>📋</div>
             <h3 style={{ fontSize: "16px" }}>لا توجد سجلات حضور هذا الشهر</h3>
-            <p style={{ fontSize: "13px" }}>سيظهر السجل فور تسجيل أول حضور</p>
+            <p style={{ fontSize: "13px" }}>
+              {isCenter ? "سيظهر السجل فور تسجيل أول حضور بالـ QR" : "يمكن إدخال الحضور يدوياً من صفحة الحضور والغياب"}
+            </p>
           </div>
         ) : (
           <div className="table-wrap">
@@ -236,6 +267,7 @@ export default async function EmployeeDetailPage({
                   <th>الحالة</th>
                   <th>دقائق التأخير</th>
                   <th>الخصم</th>
+                  <th>المصدر</th>
                 </tr>
               </thead>
               <tbody>
@@ -250,6 +282,9 @@ export default async function EmployeeDetailPage({
                     </td>
                     <td>{r.late_minutes > 0 ? `${r.late_minutes} دقيقة` : "—"}</td>
                     <td>{r.deduction > 0 ? <span style={{ color: "var(--error)", fontWeight: 700 }}>{money(r.deduction)}</span> : "—"}</td>
+                    <td>
+                      <span className="source-badge">{(r as Record<string, unknown>).source === "manual" ? "✍️ يدوي" : "📱 QR"}</span>
+                    </td>
                   </tr>
                 ))}
               </tbody>

@@ -1,9 +1,23 @@
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
 
+-- Sequence for auto-generating employee codes HF_Employee_001, HF_Employee_002, ...
+CREATE SEQUENCE IF NOT EXISTS employee_code_seq START WITH 1 INCREMENT BY 1;
+
+CREATE OR REPLACE FUNCTION next_employee_code()
+RETURNS text AS $$
+DECLARE
+  next_val bigint;
+BEGIN
+  next_val := nextval('employee_code_seq');
+  RETURN 'HF_Employee_' || lpad(next_val::text, 3, '0');
+END;
+$$ LANGUAGE plpgsql;
+
 CREATE TABLE IF NOT EXISTS employees (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  employee_code text UNIQUE,
+  employee_code text UNIQUE DEFAULT next_employee_code(),
   name text NOT NULL,
+  employee_type text NOT NULL DEFAULT 'center' CHECK (employee_type IN ('center', 'crew')),
   department text DEFAULT '',
   job_title text DEFAULT '',
   phone text DEFAULT '',
@@ -17,12 +31,20 @@ CREATE TABLE IF NOT EXISTS employees (
   updated_at timestamptz NOT NULL DEFAULT now()
 );
 
-ALTER TABLE employees ADD COLUMN IF NOT EXISTS employee_code text UNIQUE;
+-- Migrations for existing databases
+ALTER TABLE employees ADD COLUMN IF NOT EXISTS employee_code text UNIQUE DEFAULT next_employee_code();
+ALTER TABLE employees ADD COLUMN IF NOT EXISTS employee_type text NOT NULL DEFAULT 'center' CHECK (employee_type IN ('center', 'crew'));
 ALTER TABLE employees ADD COLUMN IF NOT EXISTS department text DEFAULT '';
 ALTER TABLE employees ADD COLUMN IF NOT EXISTS phone text DEFAULT '';
 ALTER TABLE employees ADD COLUMN IF NOT EXISTS hire_date date;
 ALTER TABLE employees ADD COLUMN IF NOT EXISTS bank_account text DEFAULT '';
 ALTER TABLE employees ADD COLUMN IF NOT EXISTS allowance numeric(12, 2) NOT NULL DEFAULT 0 CHECK (allowance >= 0);
+
+-- Update existing employees that have no code to get one
+UPDATE employees SET employee_code = next_employee_code() WHERE employee_code IS NULL;
+
+-- Update existing employees that have no type
+UPDATE employees SET employee_type = 'center' WHERE employee_type IS NULL OR employee_type = '';
 
 CREATE TABLE IF NOT EXISTS attendance_records (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -30,12 +52,16 @@ CREATE TABLE IF NOT EXISTS attendance_records (
   scanned_at timestamptz NOT NULL DEFAULT now(),
   local_date date NOT NULL,
   local_time time(0) NOT NULL,
-  status text NOT NULL DEFAULT 'present' CHECK (status IN ('present', 'late')),
+  status text NOT NULL DEFAULT 'present' CHECK (status IN ('present', 'late', 'absent')),
   late_minutes integer NOT NULL DEFAULT 0 CHECK (late_minutes >= 0),
   deduction numeric(12, 2) NOT NULL DEFAULT 0 CHECK (deduction >= 0),
+  source text NOT NULL DEFAULT 'qr' CHECK (source IN ('qr', 'manual')),
   created_at timestamptz NOT NULL DEFAULT now(),
   UNIQUE (employee_id, local_date)
 );
+
+-- Migration: add source column for existing databases
+ALTER TABLE attendance_records ADD COLUMN IF NOT EXISTS source text NOT NULL DEFAULT 'qr' CHECK (source IN ('qr', 'manual'));
 
 CREATE TABLE IF NOT EXISTS app_settings (
   key text PRIMARY KEY,
@@ -57,6 +83,7 @@ CREATE INDEX IF NOT EXISTS attendance_records_employee_date_idx ON attendance_re
 CREATE INDEX IF NOT EXISTS employees_active_idx ON employees(active);
 CREATE INDEX IF NOT EXISTS employees_department_idx ON employees(department);
 CREATE INDEX IF NOT EXISTS employees_employee_code_idx ON employees(employee_code);
+CREATE INDEX IF NOT EXISTS employees_employee_type_idx ON employees(employee_type);
 
 CREATE OR REPLACE FUNCTION set_updated_at()
 RETURNS trigger AS $$

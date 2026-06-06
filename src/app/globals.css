@@ -1305,3 +1305,99 @@ td strong {
     height: 96px;
   }
 }
+
+/* ═══════════════════════════════════════════
+   EMPLOYEE TYPE BADGES
+   ═══════════════════════════════════════════ */
+.type-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 10px;
+  border-radius: var(--radius-full);
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.badge-center {
+  background: var(--primary-50);
+  color: var(--primary);
+  border: 1px solid var(--primary-100);
+}
+
+.badge-crew {
+  background: var(--warning-bg);
+  color: var(--accent-dark);
+  border: 1px solid var(--warning-border);
+}
+
+/* ═══════════════════════════════════════════
+   CREW EMPLOYEE QR REPLACEMENT
+   ═══════════════════════════════════════════ */
+.employee-qr-crew {
+  background: var(--warning-bg);
+  border-color: var(--warning-border);
+  flex-direction: column;
+  gap: 2px;
+}
+
+.crew-icon-large {
+  font-size: 42px;
+  line-height: 1;
+}
+
+.employee-qr-crew span {
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--accent-dark);
+}
+
+.crew-profile-icon {
+  display: grid;
+  gap: 8px;
+  padding: 24px 16px;
+  background: var(--warning-bg);
+  border-radius: var(--radius-xl);
+  border: 1px solid var(--warning-border);
+}
+
+/* ═══════════════════════════════════════════
+   SOURCE BADGE (QR vs Manual)
+   ═══════════════════════════════════════════ */
+.source-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 10px;
+  border-radius: var(--radius-full);
+  font-size: 12px;
+  font-weight: 700;
+  background: var(--surface-3);
+  color: var(--text-secondary);
+  border: 1px solid var(--border-light);
+}
+
+/* ═══════════════════════════════════════════
+   CREW ROW IN SALARIES TABLE
+   ═══════════════════════════════════════════ */
+.crew-row {
+  background: rgba(246, 173, 85, 0.04);
+}
+
+.crew-row:hover {
+  background: rgba(246, 173, 85, 0.08) !important;
+}
+
+/* ═══════════════════════════════════════════
+   SELECT STYLING
+   ═══════════════════════════════════════════ */
+select.form-input {
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23718096' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: left 14px center;
+  padding-left: 32px;
+  cursor: pointer;
+}

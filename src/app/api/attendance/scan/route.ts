@@ -8,6 +8,7 @@ type EmployeeRow = {
   id: string;
   name: string;
   active: boolean;
+  employee_type: string;
 };
 
 type AttendanceRow = {
@@ -34,7 +35,7 @@ export async function POST(request: Request) {
 
     const db = getDb();
     const employeeRows = await db`
-      SELECT id, name, active
+      SELECT id, name, active, COALESCE(employee_type, 'center') AS employee_type
       FROM employees
       WHERE qr_token = ${token}
       LIMIT 1
@@ -43,6 +44,11 @@ export async function POST(request: Request) {
     const employee = (employeeRows as EmployeeRow[])[0];
     if (!employee || !employee.active) {
       return json({ ok: false, message: "الموظف غير موجود أو غير مفعّل." }, 404);
+    }
+
+    // Crew employees cannot use QR scanning - they must have attendance entered manually
+    if (employee.employee_type === "crew") {
+      return json({ ok: false, message: "هذا الموظف من الطاقم. يتم إدخال حضوره يدوياً من لوحة الإدارة." }, 400);
     }
 
     const settings = await getSettings();
@@ -60,7 +66,8 @@ export async function POST(request: Request) {
         local_time,
         status,
         late_minutes,
-        deduction
+        deduction,
+        source
       )
       VALUES (
         ${employee.id},
@@ -69,7 +76,8 @@ export async function POST(request: Request) {
         ${local.time}::time,
         ${status},
         ${lateMinutes},
-        ${deduction}
+        ${deduction},
+        'qr'
       )
       ON CONFLICT (employee_id, local_date) DO NOTHING
       RETURNING scanned_at, local_date::text, local_time::text, status, late_minutes, deduction

@@ -6,6 +6,7 @@ export type AttendanceRecord = {
   employee_id: string;
   employee_name: string;
   employee_code: string;
+  employee_type: string;
   department: string;
   job_title: string;
   local_date: string;
@@ -13,6 +14,7 @@ export type AttendanceRecord = {
   status: "present" | "late";
   late_minutes: number;
   deduction: number;
+  source: string;
 };
 
 export type DaySummary = {
@@ -27,9 +29,18 @@ export type AbsentEmployee = {
   id: string;
   employee_code: string;
   name: string;
+  employee_type: string;
   department: string;
   job_title: string;
   phone: string;
+};
+
+export type CrewEmployee = {
+  id: string;
+  employee_code: string;
+  name: string;
+  department: string;
+  job_title: string;
 };
 
 function toNum(v: unknown) {
@@ -44,6 +55,7 @@ function mapAttendanceRecord(r: Record<string, unknown>): AttendanceRecord {
     employee_id: toStr(r.employee_id),
     employee_name: toStr(r.employee_name),
     employee_code: toStr(r.employee_code),
+    employee_type: toStr(r.employee_type),
     department: toStr(r.department),
     job_title: toStr(r.job_title),
     local_date: toStr(r.local_date),
@@ -51,6 +63,7 @@ function mapAttendanceRecord(r: Record<string, unknown>): AttendanceRecord {
     status: (r.status === "late" ? "late" : "present") as "present" | "late",
     late_minutes: toNum(r.late_minutes),
     deduction: toNum(r.deduction),
+    source: toStr(r.source) || "qr",
   };
 }
 
@@ -62,13 +75,15 @@ export async function getAttendanceByDate(date: string): Promise<AttendanceRecor
       a.employee_id,
       e.name AS employee_name,
       COALESCE(e.employee_code, '') AS employee_code,
+      COALESCE(e.employee_type, 'center') AS employee_type,
       COALESCE(e.department, '') AS department,
       COALESCE(e.job_title, '') AS job_title,
       a.local_date::text,
       a.local_time::text,
       a.status,
       a.late_minutes,
-      a.deduction
+      a.deduction,
+      COALESCE(a.source, 'qr') AS source
     FROM attendance_records a
     JOIN employees e ON e.id = a.employee_id
     WHERE a.local_date = ${date}::date
@@ -84,6 +99,7 @@ export async function getAbsentEmployeesByDate(date: string): Promise<AbsentEmpl
       e.id,
       COALESCE(e.employee_code, '') AS employee_code,
       e.name,
+      COALESCE(e.employee_type, 'center') AS employee_type,
       COALESCE(e.department, '') AS department,
       COALESCE(e.job_title, '') AS job_title,
       COALESCE(e.phone, '') AS phone
@@ -95,13 +111,14 @@ export async function getAbsentEmployeesByDate(date: string): Promise<AbsentEmpl
         WHERE a.employee_id = e.id
           AND a.local_date = ${date}::date
       )
-    ORDER BY e.department ASC NULLS LAST, e.name ASC
+    ORDER BY e.employee_type ASC, e.department ASC NULLS LAST, e.name ASC
   `;
 
   return (rows as Record<string, unknown>[]).map((r) => ({
     id: toStr(r.id),
     employee_code: toStr(r.employee_code),
     name: toStr(r.name),
+    employee_type: toStr(r.employee_type),
     department: toStr(r.department),
     job_title: toStr(r.job_title),
     phone: toStr(r.phone),
@@ -139,13 +156,15 @@ export async function getEmployeeAttendance(employeeId: string, month: string): 
       a.employee_id,
       e.name AS employee_name,
       COALESCE(e.employee_code, '') AS employee_code,
+      COALESCE(e.employee_type, 'center') AS employee_type,
       COALESCE(e.department, '') AS department,
       COALESCE(e.job_title, '') AS job_title,
       a.local_date::text,
       a.local_time::text,
       a.status,
       a.late_minutes,
-      a.deduction
+      a.deduction,
+      COALESCE(a.source, 'qr') AS source
     FROM attendance_records a
     JOIN employees e ON e.id = a.employee_id
     WHERE a.employee_id = ${employeeId}
@@ -187,17 +206,41 @@ export async function getRecentAttendance(limit = 8): Promise<AttendanceRecord[]
       a.employee_id,
       e.name AS employee_name,
       COALESCE(e.employee_code, '') AS employee_code,
+      COALESCE(e.employee_type, 'center') AS employee_type,
       COALESCE(e.department, '') AS department,
       COALESCE(e.job_title, '') AS job_title,
       a.local_date::text,
       a.local_time::text,
       a.status,
       a.late_minutes,
-      a.deduction
+      a.deduction,
+      COALESCE(a.source, 'qr') AS source
     FROM attendance_records a
     JOIN employees e ON e.id = a.employee_id
     ORDER BY a.scanned_at DESC
     LIMIT ${limit}
   `;
   return (rows as Record<string, unknown>[]).map(mapAttendanceRecord);
+}
+
+export async function getCrewEmployees(): Promise<CrewEmployee[]> {
+  const db = getDb();
+  const rows = await db`
+    SELECT
+      id,
+      COALESCE(employee_code, '') AS employee_code,
+      name,
+      COALESCE(department, '') AS department,
+      COALESCE(job_title, '') AS job_title
+    FROM employees
+    WHERE active = true AND employee_type = 'crew'
+    ORDER BY name ASC
+  `;
+  return (rows as Record<string, unknown>[]).map((r) => ({
+    id: toStr(r.id),
+    employee_code: toStr(r.employee_code),
+    name: toStr(r.name),
+    department: toStr(r.department),
+    job_title: toStr(r.job_title),
+  }));
 }

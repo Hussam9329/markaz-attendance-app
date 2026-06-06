@@ -11,6 +11,7 @@ type Employee = {
   id: string;
   employee_code: string;
   name: string;
+  employee_type: string;
   department: string;
   job_title: string;
   phone: string;
@@ -43,6 +44,14 @@ function money(value: number | string) {
   return Number(value || 0).toLocaleString("ar-IQ");
 }
 
+function typeLabel(type: string) {
+  return type === "crew" ? "طاقم" : "مركز";
+}
+
+function typeBadgeClass(type: string) {
+  return type === "crew" ? "badge-crew" : "badge-center";
+}
+
 export default async function EmployeesPage() {
   const settings = await getSettings();
   const month = currentMonth(settings.timezone);
@@ -55,6 +64,7 @@ export default async function EmployeesPage() {
         id,
         COALESCE(employee_code, '') AS employee_code,
         name,
+        COALESCE(employee_type, 'center') AS employee_type,
         COALESCE(department, '') AS department,
         COALESCE(job_title, '') AS job_title,
         COALESCE(phone, '') AS phone,
@@ -65,7 +75,7 @@ export default async function EmployeesPage() {
         qr_token,
         active
       FROM employees
-      ORDER BY active DESC, department ASC NULLS LAST, name ASC
+      ORDER BY active DESC, employee_type ASC, department ASC NULLS LAST, name ASC
     `) as Employee[];
 
     const salaryRows = await getMonthlySalaryReport(month);
@@ -73,7 +83,7 @@ export default async function EmployeesPage() {
 
     employees = await Promise.all(
       rows.map(async (emp) => {
-        const qr = await qrDataUrl(emp.qr_token);
+        const qr = emp.employee_type === "center" ? await qrDataUrl(emp.qr_token) : "";
         const salary = Number(emp.monthly_salary || 0);
         const allowance = Number(emp.allowance || 0);
         const report = payroll.get(emp.id);
@@ -94,6 +104,8 @@ export default async function EmployeesPage() {
   }
 
   const activeCount = employees.filter((emp) => emp.active).length;
+  const centerCount = employees.filter((emp) => emp.active && emp.employee_type === "center").length;
+  const crewCount = employees.filter((emp) => emp.active && emp.employee_type === "crew").length;
   const departments = new Set(employees.map((emp) => emp.department).filter(Boolean)).size;
   const payrollTotal = employees.filter((emp) => emp.active).reduce((sum, emp) => sum + emp.net_salary, 0);
 
@@ -103,7 +115,7 @@ export default async function EmployeesPage() {
         <div>
           <div className="page-tag">&#128101; الموظفون</div>
           <h1>إدارة الموظفين والملفات الوظيفية</h1>
-          <p>ملفات موظفين احترافية تشمل الكود، القسم، الهاتف، الراتب، المخصصات، QR، والحالة الوظيفية</p>
+          <p>ملفات موظفين احترافية — كود تلقائي، نوع الموظف، القسم، الراتب، المخصصات، QR للحضور، أو إدخال يدوي</p>
         </div>
         <a href="/admin/salaries" className="btn btn-accent">💰 كشف الرواتب</a>
       </header>
@@ -116,12 +128,17 @@ export default async function EmployeesPage() {
         </article>
         <article className="stat-card green">
           <div className="stat-icon green">🏢</div>
-          <span className="stat-label">الأقسام المسجلة</span>
-          <strong className="stat-value">{departments.toLocaleString("ar-IQ")}</strong>
+          <span className="stat-label">موظفو المركز (QR)</span>
+          <strong className="stat-value">{centerCount.toLocaleString("ar-IQ")}</strong>
         </article>
         <article className="stat-card orange">
-          <div className="stat-icon orange">💵</div>
-          <span className="stat-label">صافي الرواتب الحالي</span>
+          <div className="stat-icon orange">🔧</div>
+          <span className="stat-label">موظفو الطاقم (يدوي)</span>
+          <strong className="stat-value">{crewCount.toLocaleString("ar-IQ")}</strong>
+        </article>
+        <article className="stat-card">
+          <div className="stat-icon" style={{ background: "#f0f4ff", color: "#3b82f6" }}>💵</div>
+          <span className="stat-label">صافي الرواتب</span>
           <strong className="stat-value">{payrollTotal.toLocaleString("ar-IQ")} {settings.currency}</strong>
         </article>
       </section>
@@ -130,14 +147,17 @@ export default async function EmployeesPage() {
         <div className="section-heading">
           <div>
             <h2>➕ إضافة موظف جديد</h2>
-            <p>سيتم إنشاء QR تلقائي للموظف ويمكن طباعة الرمز من بطاقة الموظف.</p>
+            <p>سيتم توليد كود الموظف تلقائياً (HF_Employee_001, 002, ...). موظفو المركز يحضرون بالـ QR، وموظفو الطاقم يدوياً.</p>
           </div>
         </div>
         <form action={createEmployee} className="professional-form-grid">
           <div className="form-group">
-            <label className="form-label">كود الموظف</label>
-            <input className="form-input" name="employee_code" placeholder="مثال: EMP-001" />
-            <span className="form-hint">اتركه فارغاً للتوليد التلقائي</span>
+            <label className="form-label">نوع الموظف</label>
+            <select className="form-input" name="employee_type" required>
+              <option value="center">🏢 موظف مركز — حضور بالـ QR</option>
+              <option value="crew">🔧 موظف طاقم — حضور ورواتب يدوية</option>
+            </select>
+            <span className="form-hint">مركز: يحضر بمسح QR | طاقم: يتم إدخال حضوره وراتبه يدوياً</span>
           </div>
           <div className="form-group">
             <label className="form-label">اسم الموظف</label>
@@ -190,11 +210,20 @@ export default async function EmployeesPage() {
           {employees.map((emp) => (
             <article className={`employee-card ${emp.active ? "" : "muted"}`} key={emp.id}>
               <div className="employee-top">
-                <div className="employee-qr">
-                  <img src={emp.qr} alt={`QR ${emp.name}`} />
-                </div>
+                {emp.employee_type === "center" ? (
+                  <div className="employee-qr">
+                    <img src={emp.qr} alt={`QR ${emp.name}`} />
+                  </div>
+                ) : (
+                  <div className="employee-qr employee-qr-crew">
+                    <div className="crew-icon-large">🔧</div>
+                    <span>طاقم</span>
+                  </div>
+                )}
                 <div className="employee-info">
-                  <div className="mini-muted">{emp.employee_code || "بدون كود"} · {emp.department || "بدون قسم"}</div>
+                  <div className="mini-muted">
+                    {emp.employee_code || "بدون كود"} · {emp.department || "بدون قسم"}
+                  </div>
                   <h2>
                     <a href={`/admin/employees/${emp.id}`} style={{ color: "var(--primary-dark)" }}>
                       {emp.name}
@@ -204,6 +233,9 @@ export default async function EmployeesPage() {
                   <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
                     <span className={`badge-active ${emp.active ? "on" : "off"}`}>
                       {emp.active ? "● فعّال" : "○ متوقف"}
+                    </span>
+                    <span className={`type-badge ${typeBadgeClass(emp.employee_type)}`}>
+                      {emp.employee_type === "crew" ? "🔧 طاقم" : "🏢 مركز"}
                     </span>
                     {emp.phone && <span className="soft-badge">📞 {emp.phone}</span>}
                   </div>
@@ -221,10 +253,11 @@ export default async function EmployeesPage() {
 
               <form action={updateEmployee} className="mini-form">
                 <input type="hidden" name="id" value={emp.id} />
+                <input type="hidden" name="employee_type" value={emp.employee_type} />
                 <div className="form-row">
                   <div className="form-group">
                     <label className="form-label">الكود</label>
-                    <input className="form-input" name="employee_code" defaultValue={emp.employee_code} />
+                    <input className="form-input" name="employee_code" defaultValue={emp.employee_code} readOnly style={{ background: "#f0f4ff", cursor: "not-allowed" }} />
                   </div>
                   <div className="form-group">
                     <label className="form-label">الاسم</label>
@@ -274,10 +307,12 @@ export default async function EmployeesPage() {
                   <a href={`/admin/employees/${emp.id}`} className="btn btn-secondary btn-sm">📄 الملف</a>
                 </div>
               </form>
-              <form action={regenerateQr}>
-                <input type="hidden" name="id" value={emp.id} />
-                <button className="btn btn-ghost btn-sm" type="submit">🔄 توليد QR جديد</button>
-              </form>
+              {emp.employee_type === "center" && (
+                <form action={regenerateQr}>
+                  <input type="hidden" name="id" value={emp.id} />
+                  <button className="btn btn-ghost btn-sm" type="submit">🔄 توليد QR جديد</button>
+                </form>
+              )}
             </article>
           ))}
         </section>

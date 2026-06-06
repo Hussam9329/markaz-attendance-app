@@ -6,6 +6,7 @@ export type MonthlySalaryRow = {
   employee_id: string;
   employee_code: string;
   name: string;
+  employee_type: string;
   department: string;
   job_title: string;
   phone: string;
@@ -63,6 +64,7 @@ export async function getMonthlySalaryReport(month: string): Promise<MonthlySala
       e.id AS employee_id,
       COALESCE(e.employee_code, '') AS employee_code,
       e.name,
+      COALESCE(e.employee_type, 'center') AS employee_type,
       COALESCE(e.department, '') AS department,
       COALESCE(e.job_title, '') AS job_title,
       COALESCE(e.phone, '') AS phone,
@@ -103,13 +105,14 @@ export async function getMonthlySalaryReport(month: string): Promise<MonthlySala
     FROM employees e
     LEFT JOIN attendance a ON a.employee_id = e.id
     WHERE e.active = true
-    ORDER BY e.department ASC NULLS LAST, e.name ASC
+    ORDER BY e.employee_type ASC, e.department ASC NULLS LAST, e.name ASC
   `;
 
   return (rows as Record<string, unknown>[]).map((row) => ({
     employee_id: String(row.employee_id),
     employee_code: String(row.employee_code ?? ""),
     name: String(row.name),
+    employee_type: String(row.employee_type ?? "center"),
     department: String(row.department ?? ""),
     job_title: String(row.job_title ?? ""),
     phone: String(row.phone ?? ""),

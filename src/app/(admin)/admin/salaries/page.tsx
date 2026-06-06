@@ -35,6 +35,28 @@ export default async function SalariesPage({ searchParams }: { searchParams: Pro
     { base: 0, allowance: 0, gross: 0, late: 0, absence: 0, deductions: 0, net: 0, attendance: 0, absenceDays: 0 }
   );
 
+  // Separate by type
+  const centerRows = rows.filter((r) => r.employee_type !== "crew");
+  const crewRows = rows.filter((r) => r.employee_type === "crew");
+
+  const centerTotals = centerRows.reduce(
+    (acc, row) => ({
+      gross: acc.gross + row.gross_salary,
+      deductions: acc.deductions + row.total_deductions,
+      net: acc.net + row.net_salary,
+    }),
+    { gross: 0, deductions: 0, net: 0 }
+  );
+
+  const crewTotals = crewRows.reduce(
+    (acc, row) => ({
+      gross: acc.gross + row.gross_salary,
+      deductions: acc.deductions + row.total_deductions,
+      net: acc.net + row.net_salary,
+    }),
+    { gross: 0, deductions: 0, net: 0 }
+  );
+
   const monthLabel = new Date(month + "-01").toLocaleDateString("ar-IQ", { month: "long", year: "numeric" });
   const expectedWorkdays = rows[0]?.expected_workdays ?? Number(settings.workdays_per_month || 0);
 
@@ -84,6 +106,20 @@ export default async function SalariesPage({ searchParams }: { searchParams: Pro
         </article>
       </section>
 
+      {/* Type Breakdown */}
+      <section className="stats-grid" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))" }}>
+        <article className="stat-card green">
+          <div className="stat-icon green">🏢</div>
+          <span className="stat-label">صافي رواتب المركز ({centerRows.length} موظف)</span>
+          <strong className="stat-value" style={{ color: "var(--success)" }}>{money(centerTotals.net)} {settings.currency}</strong>
+        </article>
+        <article className="stat-card orange">
+          <div className="stat-icon orange">🔧</div>
+          <span className="stat-label">صافي رواتب الطاقم ({crewRows.length} موظف)</span>
+          <strong className="stat-value" style={{ color: "var(--accent-dark)" }}>{money(crewTotals.net)} {settings.currency}</strong>
+        </article>
+      </section>
+
       <section className="steps-grid payroll-breakdown">
         <article className="step-card">
           <div className="step-number">1</div>
@@ -118,6 +154,7 @@ export default async function SalariesPage({ searchParams }: { searchParams: Pro
               <tr>
                 <th>الكود</th>
                 <th>الموظف</th>
+                <th>النوع</th>
                 <th>القسم</th>
                 <th>الوظيفة</th>
                 <th>الراتب</th>
@@ -135,9 +172,14 @@ export default async function SalariesPage({ searchParams }: { searchParams: Pro
             </thead>
             <tbody>
               {rows.map((row) => (
-                <tr key={row.employee_id}>
+                <tr key={row.employee_id} className={row.employee_type === "crew" ? "crew-row" : ""}>
                   <td>{row.employee_code || "—"}</td>
                   <td style={{ fontWeight: 700 }}>{row.name}</td>
+                  <td>
+                    <span className={`type-badge ${row.employee_type === "crew" ? "badge-crew" : "badge-center"}`}>
+                      {row.employee_type === "crew" ? "🔧 طاقم" : "🏢 مركز"}
+                    </span>
+                  </td>
                   <td>{row.department || "—"}</td>
                   <td>{row.job_title || "—"}</td>
                   <td>{money(row.monthly_salary)} {settings.currency}</td>
@@ -157,6 +199,7 @@ export default async function SalariesPage({ searchParams }: { searchParams: Pro
             <tfoot>
               <tr style={{ background: "var(--surface-2)", fontWeight: 900 }}>
                 <td>الإجمالي</td>
+                <td></td>
                 <td></td>
                 <td></td>
                 <td></td>
