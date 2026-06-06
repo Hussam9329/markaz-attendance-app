@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 
 const NAV = [
   { href: "/admin", label: "الرئيسية", icon: "🏠" },
@@ -14,10 +15,12 @@ export default function AdminNav() {
     <aside className="admin-sidebar">
       <div className="sidebar-header">
         <div className="logo-row">
-          <div className="sidebar-logo">HR</div>
+          <div className="sidebar-logo-img">
+            <Image src="/logo.png" alt="الطاقم TheCrew" width={42} height={42} />
+          </div>
           <div>
-            <h2>Markaz HR Pro</h2>
-            <span className="tag">حضور · موظفون · رواتب</span>
+            <h2>الطاقم <span className="logo-en">TheCrew</span></h2>
+            <span className="tag">حضور · رواتب · إدارة</span>
           </div>
         </div>
       </div>

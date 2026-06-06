@@ -61,8 +61,8 @@ export default async function AdminHomePage() {
     <div className="stack">
       <header className="page-header hero-admin-header">
         <div>
-          <div className="page-tag">&#9670; لوحة التحكم</div>
-          <h1>برنامج حضور موظفين ورواتب احترافي</h1>
+          <div className="page-tag">&#9670; الطاقم TheCrew</div>
+          <h1>نظام إدارة الحضور والرواتب</h1>
           <p>{settings.center_name} — {todayFormatted}</p>
         </div>
         <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>

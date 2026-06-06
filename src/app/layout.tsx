@@ -2,8 +2,12 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Markaz HR Pro — حضور ورواتب الموظفين",
-  description: "برنامج احترافي لإدارة حضور الموظفين عبر QR، الغياب، التأخير، الرواتب، الخصومات، والتقارير."
+  title: "الطاقم TheCrew — إدارة الحضور والرواتب",
+  description: "نظام احترافي لإدارة حضور الموظفين، الرواتب، الخصومات، والتقارير.",
+  icons: {
+    icon: "/favicon.png",
+    apple: "/logo.png",
+  },
 };
 
 export const viewport: Viewport = {

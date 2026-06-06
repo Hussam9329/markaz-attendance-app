@@ -2,6 +2,7 @@
 
 import { Html5QrcodeScanner } from "html5-qrcode";
 import { useEffect, useRef, useState } from "react";
+import Image from "next/image";
 
 type ScanResponse = {
   ok: boolean;
@@ -84,7 +85,9 @@ export default function Scanner({ centerName }: { centerName: string }) {
     <main className="scanner-shell">
       <section className="scanner-card">
         <div className="scanner-header">
-          <div className="badge">&#9670; المركز</div>
+          <div className="scanner-brand">
+            <Image src="/logo.png" alt="الطاقم TheCrew" width={56} height={56} className="scanner-logo" />
+          </div>
           <h1>{centerName}</h1>
           <p>قرّب QR الموظف من الكاميرا لتسجيل الحضور، حساب التأخير، وربط السجل بكشف الراتب تلقائياً</p>
         </div>
