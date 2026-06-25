@@ -117,12 +117,19 @@ export default async function EmployeeDetailPage({
     <div className="stack">
       <header className="page-header">
         <div>
-          <div className="page-tag">&#128100; ملف الموظف</div>
+          <div className="page-tag">&#128100; الملف المركزي</div>
           <h1>{emp.name}</h1>
-          <p>{emp.employee_code || "بدون كود"} · {emp.department || "بدون قسم"} · {emp.job_title || "بدون وصف وظيفي"} · <span className={`type-badge ${emp.employee_type === "crew" ? "badge-crew" : "badge-center"}`}>{typeLabel(emp.employee_type)}</span></p>
+          <p>كل ما يخص الموظف بمكان واحد: بياناته، حضوره، راتبه، قيوده المالية، وQR إن وجد.</p>
         </div>
         <Link href="/admin/employees" className="btn btn-secondary">→ العودة للموظفين</Link>
       </header>
+
+      <section className="profile-command-tabs">
+        <a href="#employee-profile">بطاقة الموظف</a>
+        <a href="#employee-salary">تفصيل الراتب</a>
+        <a href="#employee-adjustments">القيود المالية</a>
+        <a href="#employee-attendance">سجل الحضور</a>
+      </section>
 
       <section className="card report-toolbar">
         <form className="toolbar-form" method="get">
@@ -136,7 +143,7 @@ export default async function EmployeeDetailPage({
         <a href={`/api/reports/monthly.csv?month=${month}`} className="btn btn-secondary">📥 تنزيل كشف الشهر</a>
       </section>
 
-      <section className="employee-profile-layout">
+      <section id="employee-profile" className="employee-profile-layout">
         <aside className="card-elevated profile-side-card">
           {isCenter ? (
             <>
@@ -156,8 +163,9 @@ export default async function EmployeeDetailPage({
         </aside>
 
         <div style={{ display: "grid", gap: "20px" }}>
-          <div className="card-elevated">
-            <div className="section-heading"><div><h2>✏️ تعديل بيانات وقواعد راتب الموظف</h2><p>هذه القيم تتحكم مباشرة بمعادلة الراتب النهائي.</p></div></div>
+          <details className="card-elevated edit-drawer profile-edit-drawer" open>
+            <summary>✏️ تعديل بيانات وقواعد راتب الموظف <span>افتح/أغلق حسب الحاجة</span></summary>
+            <div className="section-heading"><div><h2>بيانات وقواعد الراتب</h2><p>هذه القيم تتحكم مباشرة بمعادلة الراتب النهائي.</p></div></div>
             <div className="help-panel" style={{ marginBottom: "16px" }}><strong>قبل التعديل</strong><p>كل خانة هنا مرتبطة بالحضور أو الراتب. عند تغيير الأيام المطلوبة أو الراتب الاسمي سيتغير كشف الراتب مباشرة.</p></div>
             <form action={updateEmployee} className="professional-form-grid compact">
               <input type="hidden" name="id" value={emp.id} />
@@ -178,9 +186,9 @@ export default async function EmployeeDetailPage({
               <label className="check-row"><input name="active" type="checkbox" defaultChecked={emp.active} /> موظف فعّال</label>
               <button className="btn btn-primary" type="submit">💾 حفظ التعديل</button>
             </form>
-          </div>
+          </details>
 
-          <div className="card-elevated">
+          <div id="employee-salary" className="card-elevated">
             <div className="section-heading"><div><h2>💰 تفصيل الراتب — {monthLabel}</h2><p>محرك الراتب الجديد: اسمي + إضافي + مكافآت + مهام − غيابات/تأخير/خصومات.</p></div></div>
             <div className="stats-grid" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))" }}>
               <article className="stat-card blue"><span className="stat-label">الراتب المحتسب</span><strong className="stat-value small-stat">{money(payroll?.salary_base_calculated ?? emp.monthly_salary)}</strong></article>
@@ -197,7 +205,7 @@ export default async function EmployeeDetailPage({
         </div>
       </section>
 
-      <section className="card-elevated">
+      <section id="employee-adjustments" className="card-elevated">
         <div className="section-heading"><div><h2>➕ قيود مالية للشهر — {monthLabel}</h2><p>كل خصم أو مكافأة أو مهمة خارجية يجب أن يكون معها ملاحظة.</p></div></div>
         <form action={addPayrollAdjustment} className="professional-form-grid compact">
           <input type="hidden" name="employee_id" value={emp.id} />
@@ -229,7 +237,7 @@ export default async function EmployeeDetailPage({
         )}
       </section>
 
-      <section className="card-elevated">
+      <section id="employee-attendance" className="card-elevated">
         <div className="section-heading"><div><h2>📋 سجل الحضور والغياب — {monthLabel}</h2><p>الغيابات هنا تدخل مباشرة في حساب الراتب حسب ترتيبها الزمني.</p></div></div>
         {records.length === 0 ? (
           <div className="empty-state" style={{ padding: "30px" }}><div className="empty-icon">📋</div><h3>لا توجد سجلات لهذا الشهر</h3></div>

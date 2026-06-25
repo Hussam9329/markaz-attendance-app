@@ -1,6 +1,6 @@
-import { getMonthlySalaryReport } from "@/lib/report";
 import { getSettings } from "@/lib/settings";
 import { currentMonth } from "@/lib/time";
+import { getMonthlySalaryReport } from "@/lib/report";
 
 export const dynamic = "force-dynamic";
 
@@ -43,102 +43,168 @@ export default async function SalariesPage({ searchParams }: { searchParams: Pro
   const centerRows = rows.filter((r) => r.employee_type !== "crew");
   const crewRows = rows.filter((r) => r.employee_type === "crew");
   const monthLabel = new Date(month + "-01").toLocaleDateString("ar-IQ-u-nu-latn", { month: "long", year: "numeric" });
+  const topNetRows = [...rows].sort((a, b) => b.net_salary - a.net_salary).slice(0, 6);
 
   return (
-    <div className="stack">
-      <header className="page-header">
-        <div>
-          <div className="page-tag">&#128176; الرواتب</div>
-          <h1>كشف الرواتب الذكي</h1>
-          <p>راتب اسمي + أيام إضافية + مكافآت + مهام − غياب بعذر/بدون عذر − تأخير − قيود يدوية — {monthLabel}</p>
-        </div>
-        <a className="btn btn-accent" href={`/api/reports/monthly.csv?month=${month}`}>📥 تنزيل CSV</a>
-      </header>
-
-      <section className="ux-guide">
-        <div><strong>الراتب المحتسب</strong><span>يعتمد على الراتب الاسمي أو الحساب اليومي حسب إعداد الموظف.</span></div>
-        <div><strong>الإضافي</strong><span>يُحسب فقط للأيام التي حضرها الموظف فوق الأيام المطلوبة.</span></div>
-        <div><strong>الغياب بدون عذر بعد المطلوب</strong><span>القرار المعتمد: خصم عقوبة فقط = {money(settings.after_required_unexcused_absence_penalty)} {settings.currency}.</span></div>
-        <div><strong>الصافي</strong><span>الناتج النهائي بعد كل الإضافات والخصومات والقيود.</span></div>
-      </section>
-
-      <section className="card report-toolbar">
-        <form className="toolbar-form" method="get">
-          <div className="form-group">
-            <label className="form-label">اختر الشهر</label>
-            <input className="form-input" name="month" type="month" defaultValue={month} />
-            <span className="form-help">اختر الشهر المالي الذي تريد مراجعته أو تصديره. كل الأرقام تظهر بالإنكليزي.</span>
-            <span className="form-tip">عقوبة بعد المطلوب: {money(settings.after_required_unexcused_absence_penalty)} {settings.currency}</span>
+    <div className="stack payroll-board-page">
+      <section className="operation-hero payroll-hero">
+        <div className="operation-hero-copy">
+          <div className="page-tag">💰 لوحة الرواتب</div>
+          <h1>مراجعة الرواتب بالكارتات أولاً</h1>
+          <p>عرض مريح للشهر {monthLabel}: راجع الصافي والإضافات والخصومات، ثم افتح الجدول الجماعي فقط عند الحاجة.</p>
+          <div className="hero-actions">
+            <a className="btn btn-accent" href={`/api/reports/monthly.csv?month=${month}`}>📥 تنزيل CSV</a>
+            <a className="btn btn-secondary" href="/admin/settings">⚙️ قواعد الخصم</a>
           </div>
-          <button className="btn btn-primary" type="submit" style={{ alignSelf: "end" }}>عرض</button>
-        </form>
-        <a className="btn btn-secondary" href="/admin/settings">⚙️ قواعد الخصم</a>
+        </div>
+        <div className="operation-scoreboard">
+          <div><span>صافي الرواتب</span><strong>{money(totals.net)} {settings.currency}</strong></div>
+          <div><span>الخصومات</span><strong className="danger-text">{money(totals.deductions)} {settings.currency}</strong></div>
+          <div><span>عدد الموظفين</span><strong>{rows.length.toLocaleString("en-US")}</strong></div>
+        </div>
       </section>
 
-      <section className="stats-grid">
+      <section className="daily-control-panel payroll-control-panel">
+        <article className="control-card date-control-card">
+          <span className="control-step">شهر</span>
+          <h2>اختر الشهر المالي</h2>
+          <p>كل الحسابات، القيود، والغيابات تعرض حسب الشهر المختار.</p>
+          <form className="toolbar-form compact-toolbar" method="get">
+            <input className="form-input" name="month" type="month" defaultValue={month} />
+            <button className="btn btn-primary" type="submit">عرض</button>
+          </form>
+        </article>
+        <article className="control-card">
+          <span className="control-step">قواعد</span>
+          <h2>قرار الغياب المعتمد</h2>
+          <p>بدون عذر بعد إكمال المطلوب يخصم عقوبة فقط.</p>
+          <strong className="big-control-number">{money(settings.after_required_unexcused_absence_penalty)}</strong>
+          <span className="muted-line">{settings.currency}</span>
+        </article>
+        <article className="control-card urgent-control-card">
+          <span className="control-step">جماعي</span>
+          <h2>إدخال سريع مثل الشيت</h2>
+          <p>الجدول التفصيلي موجود بالأسفل داخل وضع الإدخال الجماعي للمراجعة والتصدير.</p>
+          <a href="#bulk-payroll" className="btn btn-secondary btn-sm">فتح الجدول</a>
+        </article>
+      </section>
+
+      <section className="stats-grid comfort-stats">
         <article className="stat-card blue"><div className="stat-icon blue">💵</div><span className="stat-label">الراتب المحتسب</span><strong className="stat-value">{money(totals.base)} {settings.currency}</strong></article>
         <article className="stat-card green"><div className="stat-icon green">➕</div><span className="stat-label">إضافي + مكافآت + قيود موجبة</span><strong className="stat-value">{money(totals.overtime + totals.bonus + totals.additions + totals.allowance)} {settings.currency}</strong></article>
-        <article className="stat-card"><div className="stat-icon" style={{ background: "#fff5f5", color: "#e53e3e" }}>📉</div><span className="stat-label">إجمالي الخصومات</span><strong className="stat-value" style={{ color: "var(--error)" }}>{money(totals.deductions)} {settings.currency}</strong></article>
-        <article className="stat-card green"><div className="stat-icon green">✅</div><span className="stat-label">صافي الرواتب</span><strong className="stat-value" style={{ color: "var(--success)" }}>{money(totals.net)} {settings.currency}</strong></article>
+        <article className="stat-card"><div className="stat-icon" style={{ background: "#fff5f5", color: "#e53e3e" }}>📉</div><span className="stat-label">إجمالي الخصومات</span><strong className="stat-value danger-text">{money(totals.deductions)} {settings.currency}</strong></article>
+        <article className="stat-card green"><div className="stat-icon green">✅</div><span className="stat-label">صافي الرواتب</span><strong className="stat-value success-text">{money(totals.net)} {settings.currency}</strong></article>
       </section>
 
-      <section className="stats-grid" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))" }}>
-        <article className="stat-card blue"><span className="stat-label">أيام الحضور</span><strong className="stat-value">{totals.attendance.toLocaleString("en-US")}</strong></article>
-        <article className="stat-card green"><span className="stat-label">الأيام الإضافية</span><strong className="stat-value">{totals.extraDays.toLocaleString("en-US")}</strong></article>
-        <article className="stat-card orange"><span className="stat-label">أيام الغياب</span><strong className="stat-value">{totals.absenceDays.toLocaleString("en-US")}</strong></article>
-        <article className="stat-card"><span className="stat-label">عدد المركز / الطاقم</span><strong className="stat-value">{centerRows.length.toLocaleString("en-US")} / {crewRows.length.toLocaleString("en-US")}</strong></article>
-      </section>
-
-      <section className="steps-grid payroll-breakdown">
-        <article className="step-card"><div className="step-number">1</div><div className="step-text"><strong>الراتب المحتسب</strong><span>{money(totals.base)} {settings.currency}</span></div></article>
-        <article className="step-card"><div className="step-number">+</div><div className="step-text"><strong>أيام إضافية</strong><span>{money(totals.overtime)} {settings.currency}</span></div></article>
-        <article className="step-card"><div className="step-number">+</div><div className="step-text"><strong>مكافآت تلقائية</strong><span>{money(totals.bonus)} {settings.currency}</span></div></article>
-        <article className="step-card"><div className="step-number">−</div><div className="step-text"><strong>غياب وتأخير ويدوي</strong><span>{money(totals.deductions)} {settings.currency}</span></div></article>
+      <section className="workflow-board payroll-workflow-board">
+        <article className="workflow-lane lane-primary"><div className="lane-kicker">1</div><h2>راجع الكارتات</h2><p>كل موظف يظهر بكارت يلخص الراتب النهائي وأسباب الزيادة والنقصان.</p></article>
+        <article className="workflow-lane lane-warning"><div className="lane-kicker">2</div><h2>افتح ملف الموظف</h2><p>أي قيد مالي أو مكافأة أو سلفة تدخل من ملف الموظف المركزي.</p></article>
+        <article className="workflow-lane lane-success"><div className="lane-kicker">3</div><h2>صدّر عند الاعتماد</h2><p>بعد المراجعة، نزّل CSV للنسخ أو الطباعة أو الأرشفة.</p></article>
       </section>
 
       {rows.length === 0 ? (
         <section className="card"><div className="empty-state"><div className="empty-icon">💰</div><h3>لا توجد بيانات رواتب لهذا الشهر</h3><p>أضف موظفين فعالين وسجّل حضورهم أو غيابهم حتى يظهر كشف الراتب.</p></div></section>
       ) : (
-        <section className="card-elevated table-wrap">
-          <p className="table-note">اقرأ الجدول من اليمين: بيانات الموظف ← الحضور والإضافي ← الغيابات والخصومات ← الإجمالي والصافي. زر الملف يفتح تفاصيل الحساب لكل موظف.</p>
-          <table>
-            <thead>
-              <tr>
-                <th>الكود</th><th>الموظف</th><th>النوع</th><th>الوظيفة</th><th>الراتب الاسمي</th><th>المطلوب</th><th>الحضور</th><th>الإضافي</th><th>أجر الإضافي</th><th>غياب بعذر</th><th>غياب بدون عذر</th><th>خصم الغياب</th><th>خصم التأخير</th><th>قيود +</th><th>قيود −</th><th>مكافأة</th><th>الإجمالي</th><th>الصافي</th><th>الملف</th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((row) => (
-                <tr key={row.employee_id} className={row.employee_type === "crew" ? "crew-row" : ""}>
-                  <td>{row.employee_code || "—"}</td>
-                  <td style={{ fontWeight: 800 }}>{row.name}</td>
-                  <td><span className={`type-badge ${row.employee_type === "crew" ? "badge-crew" : "badge-center"}`}>{row.employee_type === "crew" ? "🔧 طاقم" : "🏢 مركز"}</span></td>
-                  <td>{row.job_title || "—"}</td>
-                  <td>{money(row.monthly_salary)}</td>
-                  <td>{row.required_workdays}</td>
-                  <td>{row.attendance_days}</td>
-                  <td>{row.extra_days}</td>
-                  <td>{money(row.overtime_amount)}</td>
-                  <td>{row.absent_excused_days}</td>
-                  <td>{row.absent_unexcused_days}</td>
-                  <td style={{ color: row.absence_deductions > 0 ? "var(--error)" : undefined, fontWeight: 700 }}>{money(row.absence_deductions)}</td>
-                  <td style={{ color: row.late_deductions > 0 ? "var(--error)" : undefined, fontWeight: 700 }}>{money(row.late_deductions)}</td>
-                  <td>{money(row.manual_additions)}</td>
-                  <td style={{ color: row.manual_deductions > 0 ? "var(--error)" : undefined }}>{money(row.manual_deductions)}</td>
-                  <td>{row.bonus_eligible ? `✅ ${money(row.automatic_bonus)}` : row.bonus_enabled ? "محجوبة" : "—"}</td>
-                  <td><strong>{money(row.gross_salary)}</strong></td>
-                  <td><strong style={{ color: "var(--success)" }}>{money(row.net_salary)} {settings.currency}</strong></td>
-                  <td><a href={`/admin/employees/${row.employee_id}?month=${month}`} className="btn btn-ghost btn-sm">📄</a></td>
-                </tr>
-              ))}
-            </tbody>
-            <tfoot>
-              <tr style={{ background: "var(--surface-2)", fontWeight: 900 }}>
-                <td>الإجمالي</td><td></td><td></td><td></td><td>{money(rows.reduce((s, r) => s + r.monthly_salary, 0))}</td><td></td><td>{totals.attendance}</td><td>{totals.extraDays}</td><td>{money(totals.overtime)}</td><td></td><td></td><td>{money(totals.absence)}</td><td>{money(totals.late)}</td><td>{money(totals.additions)}</td><td>{money(totals.manualDeductions)}</td><td>{money(totals.bonus)}</td><td>{money(totals.gross)}</td><td style={{ color: "var(--success)" }}>{money(totals.net)} {settings.currency}</td><td></td>
-              </tr>
-            </tfoot>
-          </table>
-        </section>
+        <>
+          <section className="salary-card-grid">
+            {rows.map((row) => (
+              <article className={`salary-review-card ${row.total_deductions > 0 ? "has-deductions" : "is-clean"}`} key={row.employee_id}>
+                <div className="salary-card-head">
+                  <div>
+                    <span className={`type-badge ${row.employee_type === "crew" ? "badge-crew" : "badge-center"}`}>{row.employee_type === "crew" ? "🔧 طاقم" : "🏢 مركز"}</span>
+                    <h2>{row.name}</h2>
+                    <p>{row.employee_code || "بدون كود"} · {row.job_title || "بدون وظيفة"}</p>
+                  </div>
+                  <strong className="salary-net">{money(row.net_salary)} <small>{settings.currency}</small></strong>
+                </div>
+                <div className="salary-equation">
+                  <span>أساس {money(row.salary_base_calculated)}</span>
+                  <span>+ إضافي {money(row.overtime_amount)}</span>
+                  <span>+ مكافأة {money(row.automatic_bonus)}</span>
+                  <span>- خصم {money(row.total_deductions)}</span>
+                </div>
+                <div className="metric-strip salary-mini-strip">
+                  <div><span>حضور</span><strong>{row.attendance_days} / {row.required_workdays}</strong></div>
+                  <div><span>إضافي</span><strong>{row.extra_days}</strong></div>
+                  <div><span>غياب</span><strong>{row.absent_days}</strong></div>
+                  <div><span>تأخير</span><strong>{row.late_days}</strong></div>
+                </div>
+                <div className="card-action-rail">
+                  <a href={`/admin/employees/${row.employee_id}?month=${month}`} className="btn btn-primary btn-sm">فتح التفصيل</a>
+                  <a href="/admin/attendance" className="btn btn-secondary btn-sm">مراجعة الحضور</a>
+                </div>
+              </article>
+            ))}
+          </section>
+
+          <section className="dashboard-split">
+            <article className="card-elevated calm-panel">
+              <div className="section-heading"><div><h2>🏆 أعلى صافي رواتب</h2><p>ملخص سريع لأكبر القيم حتى تراجعها قبل الاعتماد.</p></div></div>
+              <div className="rank-list">
+                {topNetRows.map((row, index) => (
+                  <a href={`/admin/employees/${row.employee_id}?month=${month}`} className="rank-item" key={row.employee_id}>
+                    <span>{(index + 1).toLocaleString("en-US")}</span>
+                    <strong>{row.name}</strong>
+                    <em>{money(row.net_salary)} {settings.currency}</em>
+                  </a>
+                ))}
+              </div>
+            </article>
+            <article className="card-elevated calm-panel">
+              <div className="section-heading"><div><h2>📌 ملخص شهري</h2><p>مؤشرات تشغيلية مرتبطة بالراتب.</p></div></div>
+              <div className="salary-radar">
+                <div><span>أيام الحضور</span><strong>{totals.attendance.toLocaleString("en-US")}</strong></div>
+                <div><span>الأيام الإضافية</span><strong>{totals.extraDays.toLocaleString("en-US")}</strong></div>
+                <div><span>أيام الغياب</span><strong className="danger-text">{totals.absenceDays.toLocaleString("en-US")}</strong></div>
+                <div><span>مركز / طاقم</span><strong>{centerRows.length.toLocaleString("en-US")} / {crewRows.length.toLocaleString("en-US")}</strong></div>
+              </div>
+            </article>
+          </section>
+
+          <details id="bulk-payroll" className="card-elevated bulk-details" open>
+            <summary>📊 وضع الإدخال والمراجعة الجماعية <span>جدول شبيه بالشيت عند الحاجة فقط</span></summary>
+            <p className="table-note">هذا الوضع مخصص للمراجعة النهائية والتصدير. الإدخالات المالية التفصيلية تتم من ملف الموظف حتى يبقى لكل مبلغ سبب وملاحظة.</p>
+            <div className="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>الكود</th><th>الموظف</th><th>النوع</th><th>الوظيفة</th><th>الراتب الاسمي</th><th>المطلوب</th><th>الحضور</th><th>الإضافي</th><th>أجر الإضافي</th><th>غياب بعذر</th><th>غياب بدون عذر</th><th>خصم الغياب</th><th>خصم التأخير</th><th>قيود +</th><th>قيود −</th><th>مكافأة</th><th>الإجمالي</th><th>الصافي</th><th>الملف</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {rows.map((row) => (
+                    <tr key={row.employee_id} className={row.employee_type === "crew" ? "crew-row" : ""}>
+                      <td>{row.employee_code || "—"}</td>
+                      <td style={{ fontWeight: 800 }}>{row.name}</td>
+                      <td><span className={`type-badge ${row.employee_type === "crew" ? "badge-crew" : "badge-center"}`}>{row.employee_type === "crew" ? "🔧 طاقم" : "🏢 مركز"}</span></td>
+                      <td>{row.job_title || "—"}</td>
+                      <td>{money(row.monthly_salary)}</td>
+                      <td>{row.required_workdays}</td>
+                      <td>{row.attendance_days}</td>
+                      <td>{row.extra_days}</td>
+                      <td>{money(row.overtime_amount)}</td>
+                      <td>{row.absent_excused_days}</td>
+                      <td>{row.absent_unexcused_days}</td>
+                      <td className={row.absence_deductions > 0 ? "danger-text" : undefined}>{money(row.absence_deductions)}</td>
+                      <td className={row.late_deductions > 0 ? "danger-text" : undefined}>{money(row.late_deductions)}</td>
+                      <td>{money(row.manual_additions)}</td>
+                      <td className={row.manual_deductions > 0 ? "danger-text" : undefined}>{money(row.manual_deductions)}</td>
+                      <td>{row.bonus_eligible ? `✅ ${money(row.automatic_bonus)}` : row.bonus_enabled ? "محجوبة" : "—"}</td>
+                      <td><strong>{money(row.gross_salary)}</strong></td>
+                      <td><strong className="success-text">{money(row.net_salary)} {settings.currency}</strong></td>
+                      <td><a href={`/admin/employees/${row.employee_id}?month=${month}`} className="btn btn-ghost btn-sm">📄</a></td>
+                    </tr>
+                  ))}
+                </tbody>
+                <tfoot>
+                  <tr style={{ background: "var(--surface-2)", fontWeight: 900 }}>
+                    <td>الإجمالي</td><td></td><td></td><td></td><td>{money(rows.reduce((s, r) => s + r.monthly_salary, 0))}</td><td></td><td>{totals.attendance}</td><td>{totals.extraDays}</td><td>{money(totals.overtime)}</td><td></td><td></td><td>{money(totals.absence)}</td><td>{money(totals.late)}</td><td>{money(totals.additions)}</td><td>{money(totals.manualDeductions)}</td><td>{money(totals.bonus)}</td><td>{money(totals.gross)}</td><td className="success-text">{money(totals.net)} {settings.currency}</td><td></td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+          </details>
+        </>
       )}
     </div>
   );

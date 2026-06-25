@@ -10,9 +10,21 @@ function money(value: number | string) {
 }
 
 function statusLabel(record: { status: string; absence_type?: string }) {
-  if (record.status === "absent") return record.absence_type === "excused" ? "🚫 غياب بعذر" : "🚫 غياب بدون عذر";
-  if (record.status === "late") return "⏰ متأخر";
-  return "✅ حاضر";
+  if (record.status === "absent") return record.absence_type === "excused" ? "غياب بعذر" : "غياب بدون عذر";
+  if (record.status === "late") return "متأخر";
+  return "حاضر";
+}
+
+function statusIcon(record: { status: string; absence_type?: string }) {
+  if (record.status === "absent") return record.absence_type === "excused" ? "🟡" : "🔴";
+  if (record.status === "late") return "🟠";
+  return "🟢";
+}
+
+function statusClass(record: { status: string; absence_type?: string }) {
+  if (record.status === "absent") return record.absence_type === "excused" ? "is-soft-warn" : "is-danger";
+  if (record.status === "late") return "is-warn";
+  return "is-ok";
 }
 
 export default async function AttendancePage({ searchParams }: { searchParams: Promise<{ date?: string }> }) {
@@ -46,67 +58,68 @@ export default async function AttendancePage({ searchParams }: { searchParams: P
   });
 
   return (
-    <div className="stack">
-      <header className="page-header">
-        <div>
-          <div className="page-tag">&#128203; الحضور</div>
-          <h1>متابعة الحضور والغياب اليومي</h1>
-          <p>عرض الحاضرين، المتأخرين، والغائبين بعذر وبدون عذر — {dateFormatted}</p>
-        </div>
-        <a className="btn btn-accent" href="/" target="_blank">📱 ماسح QR للمركز</a>
-      </header>
-
-      <section className="card report-toolbar">
-        <form className="toolbar-form" method="get">
-          <div className="form-group">
-            <label className="form-label">اختر التاريخ</label>
-            <input className="form-input" name="date" type="date" defaultValue={date} />
-            <span className="form-help">غيّر التاريخ لمراجعة حضور يوم سابق أو تسجيل غياب متأخر.</span>
+    <div className="stack attendance-cockpit">
+      <section className="operation-hero attendance-hero">
+        <div className="operation-hero-copy">
+          <div className="page-tag">📋 لوحة حضور اليوم</div>
+          <h1>الحضور والغياب بطريقة عمليات</h1>
+          <p>{dateFormatted} — كل شخص بلا بصمة يظهر كحالة تحتاج قرار، وبعد القرار يدخل مباشرة في الراتب.</p>
+          <div className="hero-actions">
+            <a className="btn btn-accent" href="/" target="_blank">📱 ماسح QR</a>
+            {date !== today && <a href="/admin/attendance" className="btn btn-secondary">الرجوع لليوم</a>}
           </div>
-          <button className="btn btn-primary" type="submit" style={{ alignSelf: "end" }}>عرض</button>
-        </form>
-        {date !== today && <a href="/admin/attendance" className="btn btn-secondary">اليوم</a>}
+        </div>
+        <div className="operation-scoreboard">
+          <div><span>نسبة الحضور</span><strong>{attendanceRate.toLocaleString("en-US")}%</strong></div>
+          <div><span>الحاضر + المتأخر</span><strong>{actualAttendance.toLocaleString("en-US")}</strong></div>
+          <div><span>غير محسوم</span><strong>{absentEmployees.length.toLocaleString("en-US")}</strong></div>
+        </div>
       </section>
 
-      <section className="ux-guide">
-        <div><strong>QR</strong><span>يسجل حضور المركز تلقائياً ويحسب التأخير حسب الإعدادات.</span></div>
-        <div><strong>إدخال يدوي</strong><span>استخدمه للحضور الاستثنائي أو للطاقم أو للغياب بعذر/بدون عذر.</span></div>
-        <div><strong>غياب غير محسوم</strong><span>أي موظف بلا سجل يظهر هنا حتى تحدد نوع الغياب قبل الراتب.</span></div>
-      </section>
+      <section className="daily-control-panel">
+        <article className="control-card date-control-card">
+          <span className="control-step">اليوم</span>
+          <h2>اختر تاريخ العمل</h2>
+          <p>راجع يوم سابق أو سجل غياب متأخر بدون الدخول في جداول معقدة.</p>
+          <form className="toolbar-form compact-toolbar" method="get">
+            <input className="form-input" name="date" type="date" defaultValue={date} />
+            <button className="btn btn-primary" type="submit">عرض</button>
+          </form>
+        </article>
 
-      <section className="stats-grid">
-        <article className="stat-card blue">
-          <div className="stat-icon blue">📊</div>
-          <span className="stat-label">نسبة الحضور الفعلية</span>
-          <strong className="stat-value">{attendanceRate.toLocaleString("en-US")}%</strong>
+        <article className="control-card">
+          <span className="control-step">QR</span>
+          <h2>دخول سريع للمركز</h2>
+          <p>افتح شاشة المسح للموظفين الذين يحضرون بالبصمة أو QR.</p>
+          <a className="btn btn-accent" href="/" target="_blank">فتح الماسح</a>
         </article>
-        <article className="stat-card green">
-          <div className="stat-icon green">✅</div>
-          <span className="stat-label">حضور ضمن الوقت</span>
-          <strong className="stat-value">{summary.present_count.toLocaleString("en-US")}</strong>
-        </article>
-        <article className="stat-card orange">
-          <div className="stat-icon orange">⏰</div>
-          <span className="stat-label">متأخرون</span>
-          <strong className="stat-value">{summary.late_count.toLocaleString("en-US")}</strong>
-        </article>
-        <article className="stat-card">
-          <div className="stat-icon" style={{ background: "#fff5f5", color: "#e53e3e" }}>🚫</div>
-          <span className="stat-label">غياب مسجل / غير محسوم</span>
-          <strong className="stat-value">{summary.absent_count.toLocaleString("en-US")} / {absentEmployees.length.toLocaleString("en-US")}</strong>
+
+        <article className="control-card urgent-control-card">
+          <span className="control-step">حسم</span>
+          <h2>غياب يحتاج قرار</h2>
+          <p>لا تترك الغياب بدون نوع، لأن الراتب يعتمد على بعذر / بدون عذر.</p>
+          <strong className="big-control-number">{absentEmployees.length.toLocaleString("en-US")}</strong>
         </article>
       </section>
 
-      <section className="card-elevated">
+      <section className="stats-grid comfort-stats">
+        <article className="stat-card green"><div className="stat-icon green">✅</div><span className="stat-label">حضور ضمن الوقت</span><strong className="stat-value">{summary.present_count.toLocaleString("en-US")}</strong></article>
+        <article className="stat-card orange"><div className="stat-icon orange">⏰</div><span className="stat-label">متأخرون</span><strong className="stat-value">{summary.late_count.toLocaleString("en-US")}</strong></article>
+        <article className="stat-card"><div className="stat-icon" style={{ background: "#fff5f5", color: "#e53e3e" }}>🚫</div><span className="stat-label">غياب مسجل / غير محسوم</span><strong className="stat-value">{summary.absent_count.toLocaleString("en-US")} / {absentEmployees.length.toLocaleString("en-US")}</strong></article>
+        <article className="stat-card blue"><div className="stat-icon blue">💵</div><span className="stat-label">خصومات التأخير</span><strong className="stat-value small-stat">{money(summary.total_deductions)} {settings.currency}</strong></article>
+      </section>
+
+      <section className="card-elevated calm-panel">
         <div className="section-heading">
           <div>
-            <h2>✍️ إدخال حضور / غياب يدوي</h2>
-            <p>أي غياب يتم تسجيله هنا يدخل مباشرة في كشف الرواتب ويُحسب حسب: بعذر، بدون عذر، قبل/بعد إكمال الأيام المطلوبة.</p>
+            <h2>✍️ إدخال يدوي سريع</h2>
+            <p>طريقة إدخال واحدة واضحة: اختر الموظف، الحالة، السبب. النظام يتكفل بباقي أثر الراتب.</p>
           </div>
         </div>
-        <form action={addManualAttendance} className="professional-form-grid compact">
+        <form action={addManualAttendance} className="manual-entry-flow">
           <input type="hidden" name="local_date" value={date} />
-          <div className="form-group">
+          <div className="flow-field wide-field">
+            <span className="flow-number">1</span>
             <label className="form-label">الموظف</label>
             <select className="form-input" name="employee_id" required>
               <option value="">— اختر الموظف —</option>
@@ -114,170 +127,146 @@ export default async function AttendancePage({ searchParams }: { searchParams: P
                 <option key={emp.id} value={emp.id}>{emp.employee_code} — {emp.name} ({emp.department || "بدون قسم"})</option>
               ))}
             </select>
-            <span className="form-help">اختر الموظف الذي تريد إضافة سجل يدوي له في هذا التاريخ.</span>
+            <small>اختيار الموظف يربط السجل مباشرة بملفه وراتبه.</small>
           </div>
-          <div className="form-group">
-            <label className="form-label">وقت الحضور</label>
-            <input className="form-input" name="local_time" type="time" defaultValue="09:00" />
-            <span className="form-help">اكتب وقت الحضور للحاضر أو المتأخر. يُتجاهل عند اختيار غياب.</span>
-          </div>
-          <div className="form-group">
+          <div className="flow-field">
+            <span className="flow-number">2</span>
             <label className="form-label">الحالة</label>
             <select className="form-input" name="status" defaultValue="present">
               <option value="present">✅ حاضر</option>
               <option value="late">⏰ متأخر</option>
               <option value="absent">🚫 غائب</option>
             </select>
-            <span className="form-help">اختر حاضر، متأخر، أو غائب. هذه الحالة تدخل في التقارير.</span>
+            <small>الغياب يفعّل نوع الغياب في الحقل التالي.</small>
           </div>
-          <div className="form-group">
+          <div className="flow-field">
+            <span className="flow-number">3</span>
+            <label className="form-label">وقت الحضور</label>
+            <input className="form-input" name="local_time" type="time" defaultValue="09:00" />
+            <small>يستخدم للحاضر والمتأخر فقط.</small>
+          </div>
+          <div className="flow-field">
+            <span className="flow-number">4</span>
             <label className="form-label">نوع الغياب</label>
             <select className="form-input" name="absence_type" defaultValue="unexcused">
               <option value="unexcused">بدون عذر</option>
               <option value="excused">بعذر</option>
             </select>
-            <span className="form-help">بعذر يخصم حسب القاعدة، وبدون عذر يطبق عقوبة الغياب.</span>
+            <small>بدون عذر يطبق العقوبة المعتمدة.</small>
           </div>
-          <div className="form-group full-span">
-            <label className="form-label">ملاحظة</label>
+          <div className="flow-field wide-field">
+            <span className="flow-number">5</span>
+            <label className="form-label">الملاحظة</label>
             <input className="form-input" name="note" placeholder="سبب الغياب أو التأخير، اختياري" />
-            <span className="form-help">الملاحظة تظهر في ملف الموظف وتساعد عند مراجعة الراتب.</span>
+            <small>تظهر في ملف الموظف وعند مراجعة الراتب.</small>
           </div>
-          <button className="btn btn-primary" type="submit" style={{ alignSelf: "end" }}>✍️ تسجيل يدوي</button>
+          <button className="btn btn-primary btn-lg" type="submit">حفظ السجل</button>
         </form>
       </section>
 
-      <section className="card-elevated">
-        <div className="section-heading">
-          <div>
-            <h2>📱 سجلات حضور QR — {dateFormatted}</h2>
-            <p>إجمالي خصومات التأخير المسجلة من البصمة: {money(summary.total_deductions)} {settings.currency}</p>
-          </div>
-        </div>
-        {qrRecords.length === 0 ? (
-          <div className="empty-state"><div className="empty-icon">📱</div><h3>لا توجد سجلات QR في هذا التاريخ</h3></div>
-        ) : (
-          <div className="table-wrap">
-            <p className="table-note">كل سجل QR هنا مسجل تلقائياً من الماسح. السجل اليدوي يظهر في جدول منفصل حتى يكون التمييز واضح.</p>
-            <table>
-              <thead>
-                <tr>
-                  <th>#</th><th>الكود</th><th>الموظف</th><th>القسم</th><th>الوظيفة</th><th>وقت الحضور</th><th>الحالة</th><th>دقائق التأخير</th><th>الخصم</th><th>الملف</th>
-                </tr>
-              </thead>
-              <tbody>
-                {qrRecords.map((r, i) => (
-                  <tr key={r.id}>
-                    <td>{i + 1}</td>
-                    <td>{r.employee_code || "—"}</td>
-                    <td style={{ fontWeight: 700 }}>{r.employee_name}</td>
-                    <td>{r.department || "—"}</td>
-                    <td>{r.job_title || "—"}</td>
-                    <td style={{ fontWeight: 700 }}>{r.local_time}</td>
-                    <td><span className={`badge-active ${r.status === "present" ? "on" : "off"}`}>{statusLabel(r)}</span></td>
-                    <td>{r.late_minutes > 0 ? <span style={{ color: "var(--warning)", fontWeight: 700 }}>{r.late_minutes} دقيقة</span> : "—"}</td>
-                    <td>{r.deduction > 0 ? <span style={{ color: "var(--error)", fontWeight: 700 }}>{money(r.deduction)}</span> : "—"}</td>
-                    <td><a href={`/admin/employees/${r.employee_id}`} className="btn btn-ghost btn-sm">📄</a></td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </section>
-
-      {manualRecords.length > 0 && (
-        <section className="card-elevated">
-          <div className="section-heading">
-            <div>
-              <h2>✍️ السجلات اليدوية — {dateFormatted}</h2>
-              <p>تشمل الحضور اليدوي والغيابات بعذر/بدون عذر.</p>
-            </div>
-          </div>
-          <div className="table-wrap">
-            <p className="table-note">راجع نوع الغياب والملاحظة قبل نهاية الشهر، لأنهما يدخلان مباشرة في محرك الرواتب.</p>
-            <table>
-              <thead>
-                <tr>
-                  <th>#</th><th>الكود</th><th>الموظف</th><th>القسم</th><th>الوظيفة</th><th>وقت الحضور</th><th>الحالة</th><th>دقائق التأخير</th><th>الخصم</th><th>الملاحظة</th><th>الملف</th><th>حذف</th>
-                </tr>
-              </thead>
-              <tbody>
-                {manualRecords.map((r, i) => (
-                  <tr key={r.id}>
-                    <td>{i + 1}</td>
-                    <td>{r.employee_code || "—"}</td>
-                    <td style={{ fontWeight: 700 }}>{r.employee_name}</td>
-                    <td>{r.department || "—"}</td>
-                    <td>{r.job_title || "—"}</td>
-                    <td style={{ fontWeight: 700 }}>{r.status === "absent" ? "—" : r.local_time}</td>
-                    <td><span className={`badge-active ${r.status === "present" ? "on" : "off"}`}>{statusLabel(r)}</span></td>
-                    <td>{r.late_minutes > 0 ? <span style={{ color: "var(--warning)", fontWeight: 700 }}>{r.late_minutes} دقيقة</span> : "—"}</td>
-                    <td>{r.deduction > 0 ? <span style={{ color: "var(--error)", fontWeight: 700 }}>{money(r.deduction)}</span> : "—"}</td>
-                    <td>{r.note || "—"}</td>
-                    <td><a href={`/admin/employees/${r.employee_id}`} className="btn btn-ghost btn-sm">📄</a></td>
-                    <td>
-                      <form action={deleteAttendanceRecord} style={{ display: "inline" }}>
-                        <input type="hidden" name="record_id" value={r.id} />
-                        <button className="btn btn-ghost btn-sm" type="submit" style={{ color: "var(--error)" }}>🗑️</button>
-                      </form>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </section>
-      )}
-
-      <section className="card-elevated">
+      <section className="card-elevated calm-panel">
         <div className="section-heading">
           <div>
             <h2>🚫 غياب غير محسوم</h2>
-            <p>هؤلاء لا يملكون أي سجل لهذا اليوم. سجّل الغياب حتى يدخل في الراتب بنوعه الصحيح.</p>
+            <p>بطاقات سريعة بدل الجدول: كل موظف له زر حسم مباشر بعذر أو بدون عذر.</p>
           </div>
         </div>
         {absentEmployees.length === 0 ? (
           <div className="empty-state" style={{ padding: "28px" }}>
             <div className="empty-icon" style={{ width: "56px", height: "56px", fontSize: "24px" }}>✅</div>
-            <h3 style={{ fontSize: "16px" }}>لا توجد غيابات غير محسومة</h3>
+            <h3 style={{ fontSize: "16px" }}>كل الغياب محسوم لهذا اليوم</h3>
           </div>
         ) : (
-          <div className="table-wrap">
-            <table>
-              <thead>
-                <tr><th>#</th><th>الكود</th><th>الموظف</th><th>النوع</th><th>القسم</th><th>الوظيفة</th><th>الهاتف</th><th>الملف</th><th>تسجيل سريع</th></tr>
-              </thead>
-              <tbody>
-                {absentEmployees.map((emp, i) => (
-                  <tr key={emp.id}>
-                    <td>{i + 1}</td>
-                    <td>{emp.employee_code || "—"}</td>
-                    <td style={{ fontWeight: 700 }}>{emp.name}</td>
-                    <td><span className={`type-badge ${emp.employee_type === "crew" ? "badge-crew" : "badge-center"}`}>{emp.employee_type === "crew" ? "🔧 طاقم" : "🏢 مركز"}</span></td>
-                    <td>{emp.department || "—"}</td>
-                    <td>{emp.job_title || "—"}</td>
-                    <td>{emp.phone || "—"}</td>
-                    <td><a href={`/admin/employees/${emp.id}`} className="btn btn-ghost btn-sm">📄</a></td>
-                    <td>
-                      <form action={addManualAttendance} style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
-                        <input type="hidden" name="employee_id" value={emp.id} />
-                        <input type="hidden" name="local_date" value={date} />
-                        <input type="hidden" name="status" value="absent" />
-                        <select className="form-input" name="absence_type" defaultValue="unexcused" style={{ minWidth: "130px", padding: "8px" }}>
-                          <option value="unexcused">بدون عذر</option>
-                          <option value="excused">بعذر</option>
-                        </select>
-                        <input className="form-input" name="note" placeholder="ملاحظة" style={{ minWidth: "140px", padding: "8px" }} />
-                        <button className="btn btn-primary btn-sm" type="submit">تسجيل</button>
-                      </form>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          <div className="absence-decision-grid">
+            {absentEmployees.map((emp) => (
+              <article className="absence-decision-card" key={emp.id}>
+                <div>
+                  <span className={`type-badge ${emp.employee_type === "crew" ? "badge-crew" : "badge-center"}`}>{emp.employee_type === "crew" ? "🔧 طاقم" : "🏢 مركز"}</span>
+                  <h3>{emp.name}</h3>
+                  <p>{emp.employee_code || "بدون كود"} · {emp.department || "بدون قسم"} · {emp.job_title || "بدون وظيفة"}</p>
+                </div>
+                <form action={addManualAttendance} className="absence-quick-form">
+                  <input type="hidden" name="employee_id" value={emp.id} />
+                  <input type="hidden" name="local_date" value={date} />
+                  <input type="hidden" name="status" value="absent" />
+                  <select className="form-input" name="absence_type" defaultValue="unexcused">
+                    <option value="unexcused">بدون عذر</option>
+                    <option value="excused">بعذر</option>
+                  </select>
+                  <input className="form-input" name="note" placeholder="ملاحظة مختصرة" />
+                  <button className="btn btn-primary btn-sm" type="submit">حسم الغياب</button>
+                  <a href={`/admin/employees/${emp.id}`} className="btn btn-ghost btn-sm">ملف</a>
+                </form>
+              </article>
+            ))}
           </div>
         )}
+      </section>
+
+      <section className="dashboard-split records-split">
+        <article className="card-elevated calm-panel">
+          <div className="section-heading">
+            <div>
+              <h2>📱 سجلات QR</h2>
+              <p>{qrRecords.length.toLocaleString("en-US")} سجل من الماسح.</p>
+            </div>
+          </div>
+          {qrRecords.length === 0 ? (
+            <div className="empty-state"><div className="empty-icon">📱</div><h3>لا توجد سجلات QR</h3></div>
+          ) : (
+            <div className="activity-card-grid">
+              {qrRecords.map((r) => (
+                <article className={`activity-card ${statusClass(r)}`} key={r.id}>
+                  <div className="activity-main">
+                    <span className="record-icon">{statusIcon(r)}</span>
+                    <div><strong>{r.employee_name}</strong><span>{r.employee_code || "بدون كود"} · {r.department || "بدون قسم"}</span></div>
+                  </div>
+                  <div className="activity-meta">
+                    <span>{r.local_time}</span>
+                    <span>{statusLabel(r)}</span>
+                    <span>{r.late_minutes > 0 ? `${r.late_minutes.toLocaleString("en-US")} دقيقة` : "بدون تأخير"}</span>
+                  </div>
+                  <a href={`/admin/employees/${r.employee_id}`} className="btn btn-ghost btn-sm">ملف الموظف</a>
+                </article>
+              ))}
+            </div>
+          )}
+        </article>
+
+        <article className="card-elevated calm-panel">
+          <div className="section-heading">
+            <div>
+              <h2>✍️ سجلات يدوية</h2>
+              <p>{manualRecords.length.toLocaleString("en-US")} سجل يدوي أو غياب محسوم.</p>
+            </div>
+          </div>
+          {manualRecords.length === 0 ? (
+            <div className="empty-state"><div className="empty-icon">✍️</div><h3>لا توجد سجلات يدوية</h3></div>
+          ) : (
+            <div className="activity-card-grid">
+              {manualRecords.map((r) => (
+                <article className={`activity-card ${statusClass(r)}`} key={r.id}>
+                  <div className="activity-main">
+                    <span className="record-icon">{statusIcon(r)}</span>
+                    <div><strong>{r.employee_name}</strong><span>{r.employee_code || "بدون كود"} · {r.note || "بدون ملاحظة"}</span></div>
+                  </div>
+                  <div className="activity-meta">
+                    <span>{r.status === "absent" ? "غياب" : r.local_time}</span>
+                    <span>{statusLabel(r)}</span>
+                    <span>{r.deduction > 0 ? `${money(r.deduction)} ${settings.currency}` : "لا خصم مباشر"}</span>
+                  </div>
+                  <div className="btn-row">
+                    <a href={`/admin/employees/${r.employee_id}`} className="btn btn-ghost btn-sm">ملف</a>
+                    <form action={deleteAttendanceRecord}>
+                      <input type="hidden" name="record_id" value={r.id} />
+                      <button className="btn btn-ghost btn-sm danger-text" type="submit">حذف</button>
+                    </form>
+                  </div>
+                </article>
+              ))}
+            </div>
+          )}
+        </article>
       </section>
     </div>
   );

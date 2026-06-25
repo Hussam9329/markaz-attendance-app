@@ -133,12 +133,33 @@ export default async function EmployeesPage() {
     <div className="stack">
       <header className="page-header">
         <div>
-          <div className="page-tag">&#128101; الموظفون</div>
-          <h1>إدارة الموظفين والملفات الوظيفية</h1>
-          <p>ملفات موظفين احترافية — كود تلقائي، نوع الموظف، القسم، الراتب، المخصصات، QR للحضور، أو إدخال يدوي</p>
+          <div className="page-tag">&#128101; ملفات الموظفين</div>
+          <h1>مركز الموظفين البصري</h1>
+          <p>إضافة الموظف صارت خطوات، وبطاقة الموظف تعرض أهم شيء أولاً، والتعديل مخفي حتى تحتاجه.</p>
         </div>
         <a href="/admin/salaries" className="btn btn-accent">💰 كشف الرواتب</a>
       </header>
+
+      <section className="workflow-board employee-workspace-board">
+        <article className="workflow-lane lane-primary">
+          <div className="lane-kicker">إضافة</div>
+          <h2>إدخال موظف جديد</h2>
+          <p>نموذج مقسم إلى مراحل واضحة حتى لا تختلط بيانات الموظف مع قواعد الراتب.</p>
+          <a href="#add-employee" className="btn btn-primary btn-sm">ابدأ الإضافة</a>
+        </article>
+        <article className="workflow-lane lane-success">
+          <div className="lane-kicker">ملف</div>
+          <h2>الموظف كمركز واحد</h2>
+          <p>من بطاقة الموظف تدخل إلى ملفه وتشاهد حضوره، راتبه، قيوده، وملاحظاته.</p>
+          <span className="soft-badge">{activeCount.toLocaleString("en-US")} ملف فعال</span>
+        </article>
+        <article className="workflow-lane lane-warning">
+          <div className="lane-kicker">سريع</div>
+          <h2>تعديل عند الحاجة فقط</h2>
+          <p>حقول التعديل مخفية داخل كل كارت حتى تبقى الصفحة مريحة وغير مزدحمة.</p>
+          <span className="soft-badge">أرقام إنكليزية + شرح لكل خانة</span>
+        </article>
+      </section>
 
       <section className="stats-grid">
         <article className="stat-card blue">
@@ -163,10 +184,10 @@ export default async function EmployeesPage() {
         </article>
       </section>
 
-      <section className="card-elevated">
+      <section id="add-employee" className="card-elevated wizard-panel">
         <div className="section-heading">
           <div>
-            <h2>➕ إضافة موظف جديد</h2>
+            <h2>➕ إضافة موظف جديد بطريقة خطوات</h2>
             <p>سيتم توليد كود الموظف تلقائياً (HF_Employee_001, 002, ...). موظفو المركز يحضرون بالـ QR، وموظفو الطاقم يدوياً.</p>
           </div>
         </div>
@@ -175,7 +196,7 @@ export default async function EmployeesPage() {
           <div><strong>2. ثبّت قاعدة الراتب</strong><span>الراتب الاسمي + الأيام المطلوبة هي أساس كل معادلات الراتب.</span></div>
           <div><strong>3. فعّل الخيارات المناسبة</strong><span>الإضافي والمكافأة واليومي تُحسب فقط عند تفعيلها هنا.</span></div>
         </div>
-        <form action={createEmployee} className="professional-form-grid" style={{ marginTop: "18px" }}>
+        <form action={createEmployee} className="professional-form-grid wizard-form" style={{ marginTop: "18px" }}>
           <div className="form-section-title">👤 معلومات الموظف <span>هذه البيانات تظهر في كل الشاشات والتقارير.</span></div>
           <div className="form-group">
             <label className="form-label">نوع الموظف</label>
@@ -307,9 +328,15 @@ export default async function EmployeesPage() {
                 <div><span>الصافي</span><strong>{money(emp.net_salary)}</strong></div>
               </div>
 
-              <hr className="divider" />
+              <div className="card-action-rail">
+                <a href={`/admin/employees/${emp.id}`} className="btn btn-primary btn-sm">فتح الملف المركزي</a>
+                <a href={`/admin/employees/${emp.id}?month=${month}`} className="btn btn-secondary btn-sm">تفصيل الراتب</a>
+                <a href="/admin/attendance" className="btn btn-ghost btn-sm">الحضور</a>
+              </div>
 
-              <form action={updateEmployee} className="mini-form">
+              <details className="edit-drawer">
+                <summary>⚙️ تعديل سريع <span>افتحه فقط عند الحاجة</span></summary>
+                <form action={updateEmployee} className="mini-form">
                 <input type="hidden" name="id" value={emp.id} />
                 <input type="hidden" name="employee_type" value={emp.employee_type} />
                 <div className="help-panel"><strong>تعديل سريع</strong><p>أي تغيير هنا ينعكس مباشرة على الحضور والرواتب. الحقول المالية تُستخدم في كشف الشهر الحالي والجديد.</p></div>
@@ -400,7 +427,8 @@ export default async function EmployeesPage() {
                   <button className="btn btn-primary btn-sm" type="submit">💾 حفظ</button>
                   <a href={`/admin/employees/${emp.id}`} className="btn btn-secondary btn-sm">📄 الملف</a>
                 </div>
-              </form>
+                </form>
+              </details>
               {emp.employee_type === "center" && (
                 <form action={regenerateQr}>
                   <input type="hidden" name="id" value={emp.id} />
