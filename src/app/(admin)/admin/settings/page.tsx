@@ -16,25 +16,35 @@ export default async function SettingsPage() {
         </div>
       </header>
 
+      <section className="ux-guide">
+        <div><strong>وقت التأخير</strong><span>أي بصمة بعد هذا الوقت تُسجل كمتأخر وتظهر في الراتب.</span></div>
+        <div><strong>أيام العمل</strong><span>قيمة احتياطية إذا لم تحدد الأيام المطلوبة داخل ملف الموظف.</span></div>
+        <div><strong>عقوبات الغياب</strong><span>تتحكم بالفرق بين الغياب بعذر وبدون عذر قبل/بعد إكمال المطلوب.</span></div>
+      </section>
+
       <section className="card-elevated">
+        <div className="help-panel" style={{ marginBottom: "18px" }}>
+          <strong>ملاحظة مهمة</strong>
+          <p>كل الأرقام داخل البرنامج تُعرض بالإنكليزي. هذه الإعدادات تؤثر على الحسابات القادمة مباشرة، لذلك غيّرها فقط عند اعتماد قاعدة جديدة.</p>
+        </div>
         <form action={updateSettings} className="settings-form">
           <div className="form-group">
             <label className="form-label">اسم المركز في الواجهة</label>
             <input className="form-input" name="center_name" defaultValue={settings.center_name} required />
-            <span className="form-hint">يظهر في واجهة التابلت الرئيسية.</span>
+            <span className="form-help">يظهر في واجهة التابلت الرئيسية وفي عنوان النظام.</span>
           </div>
 
           <div className="settings-grid">
             <div className="form-group">
               <label className="form-label">المنطقة الزمنية</label>
               <input className="form-input" name="timezone" defaultValue={settings.timezone} required />
-              <span className="form-hint">الافتراضية: Asia/Baghdad</span>
+              <span className="form-help">الافتراضية: Asia/Baghdad. تتحكم بتاريخ ووقت البصمة.</span>
             </div>
 
             <div className="form-group">
               <label className="form-label">العملة / رمز الراتب</label>
               <input className="form-input" name="currency" defaultValue={settings.currency} required />
-              <span className="form-hint">مثال: IQD — دينار عراقي</span>
+              <span className="form-help">مثال: IQD. يظهر بجانب كل مبالغ الرواتب والخصومات.</span>
             </div>
           </div>
 
@@ -49,7 +59,7 @@ export default async function SettingsPage() {
                 defaultValue={settings.late_after_time}
                 required
               />
-              <span className="form-hint">أي حضور بعد هذا الوقت يُحسب تأخيراً.</span>
+              <span className="form-help">أي حضور بعد هذا الوقت يُحسب تأخيراً في سجل الحضور.</span>
             </div>
 
             <div className="form-group">
@@ -63,7 +73,7 @@ export default async function SettingsPage() {
                 defaultValue={settings.late_deduction_per_minute}
                 required
               />
-              <span className="form-hint">يُخصم من الراتب الشهري عند التأخير.</span>
+              <span className="form-help">إذا كان 0 يتم تسجيل التأخير بدون خصم تلقائي.</span>
             </div>
           </div>
 
@@ -79,7 +89,7 @@ export default async function SettingsPage() {
                 defaultValue={settings.workdays_per_month}
                 required
               />
-              <span className="form-hint">تُستخدم كقيمة احتياطية إذا لم يتم تحديد الأيام المطلوبة داخل ملف الموظف.</span>
+              <span className="form-help">قيمة احتياطية فقط؛ ملف الموظف يملك الأولوية عند الحساب.</span>
             </div>
 
             <div className="form-group">
@@ -93,7 +103,7 @@ export default async function SettingsPage() {
                 defaultValue={settings.unexcused_absence_penalty}
                 required
               />
-              <span className="form-hint">تضاف فوق قيمة اليوم. مثال: يوم قيمته 25 + عقوبة 10 = خصم 35.</span>
+              <span className="form-help">تضاف فوق قيمة اليوم. مثال: يوم قيمته 25 + عقوبة 10 = خصم 35.</span>
             </div>
           </div>
 
@@ -108,7 +118,7 @@ export default async function SettingsPage() {
               defaultValue={settings.after_required_unexcused_absence_penalty}
               required
             />
-            <span className="form-hint">القرار المعتمد: 10 فقط، حتى يطلع مثال 400 + يومين إضافي − غيابين بدون عذر = 430.</span>
+            <span className="form-help">القرار المعتمد: 10 فقط، حتى يطلع مثال 400 + يومين إضافي − غيابين بدون عذر = 430.</span>
           </div>
 
           <button className="btn btn-primary btn-lg" type="submit" style={{ marginTop: "8px", width: "fit-content" }}>

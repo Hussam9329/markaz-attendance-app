@@ -5,7 +5,7 @@ import { currentMonth } from "@/lib/time";
 export const dynamic = "force-dynamic";
 
 function money(value: number | string) {
-  return Number(value || 0).toLocaleString("ar-IQ");
+  return Number(value || 0).toLocaleString("en-US");
 }
 
 export default async function SalariesPage({ searchParams }: { searchParams: Promise<{ month?: string }> }) {
@@ -42,7 +42,7 @@ export default async function SalariesPage({ searchParams }: { searchParams: Pro
 
   const centerRows = rows.filter((r) => r.employee_type !== "crew");
   const crewRows = rows.filter((r) => r.employee_type === "crew");
-  const monthLabel = new Date(month + "-01").toLocaleDateString("ar-IQ", { month: "long", year: "numeric" });
+  const monthLabel = new Date(month + "-01").toLocaleDateString("ar-IQ-u-nu-latn", { month: "long", year: "numeric" });
 
   return (
     <div className="stack">
@@ -55,12 +55,20 @@ export default async function SalariesPage({ searchParams }: { searchParams: Pro
         <a className="btn btn-accent" href={`/api/reports/monthly.csv?month=${month}`}>📥 تنزيل CSV</a>
       </header>
 
+      <section className="ux-guide">
+        <div><strong>الراتب المحتسب</strong><span>يعتمد على الراتب الاسمي أو الحساب اليومي حسب إعداد الموظف.</span></div>
+        <div><strong>الإضافي</strong><span>يُحسب فقط للأيام التي حضرها الموظف فوق الأيام المطلوبة.</span></div>
+        <div><strong>الغياب بدون عذر بعد المطلوب</strong><span>القرار المعتمد: خصم عقوبة فقط = {money(settings.after_required_unexcused_absence_penalty)} {settings.currency}.</span></div>
+        <div><strong>الصافي</strong><span>الناتج النهائي بعد كل الإضافات والخصومات والقيود.</span></div>
+      </section>
+
       <section className="card report-toolbar">
         <form className="toolbar-form" method="get">
           <div className="form-group">
             <label className="form-label">اختر الشهر</label>
             <input className="form-input" name="month" type="month" defaultValue={month} />
-            <span className="form-hint">عقوبة بدون عذر بعد إكمال المطلوب: {money(settings.after_required_unexcused_absence_penalty)} {settings.currency}</span>
+            <span className="form-help">اختر الشهر المالي الذي تريد مراجعته أو تصديره. كل الأرقام تظهر بالإنكليزي.</span>
+            <span className="form-tip">عقوبة بعد المطلوب: {money(settings.after_required_unexcused_absence_penalty)} {settings.currency}</span>
           </div>
           <button className="btn btn-primary" type="submit" style={{ alignSelf: "end" }}>عرض</button>
         </form>
@@ -75,10 +83,10 @@ export default async function SalariesPage({ searchParams }: { searchParams: Pro
       </section>
 
       <section className="stats-grid" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))" }}>
-        <article className="stat-card blue"><span className="stat-label">أيام الحضور</span><strong className="stat-value">{totals.attendance.toLocaleString("ar-IQ")}</strong></article>
-        <article className="stat-card green"><span className="stat-label">الأيام الإضافية</span><strong className="stat-value">{totals.extraDays.toLocaleString("ar-IQ")}</strong></article>
-        <article className="stat-card orange"><span className="stat-label">أيام الغياب</span><strong className="stat-value">{totals.absenceDays.toLocaleString("ar-IQ")}</strong></article>
-        <article className="stat-card"><span className="stat-label">عدد المركز / الطاقم</span><strong className="stat-value">{centerRows.length.toLocaleString("ar-IQ")} / {crewRows.length.toLocaleString("ar-IQ")}</strong></article>
+        <article className="stat-card blue"><span className="stat-label">أيام الحضور</span><strong className="stat-value">{totals.attendance.toLocaleString("en-US")}</strong></article>
+        <article className="stat-card green"><span className="stat-label">الأيام الإضافية</span><strong className="stat-value">{totals.extraDays.toLocaleString("en-US")}</strong></article>
+        <article className="stat-card orange"><span className="stat-label">أيام الغياب</span><strong className="stat-value">{totals.absenceDays.toLocaleString("en-US")}</strong></article>
+        <article className="stat-card"><span className="stat-label">عدد المركز / الطاقم</span><strong className="stat-value">{centerRows.length.toLocaleString("en-US")} / {crewRows.length.toLocaleString("en-US")}</strong></article>
       </section>
 
       <section className="steps-grid payroll-breakdown">
@@ -92,6 +100,7 @@ export default async function SalariesPage({ searchParams }: { searchParams: Pro
         <section className="card"><div className="empty-state"><div className="empty-icon">💰</div><h3>لا توجد بيانات رواتب لهذا الشهر</h3><p>أضف موظفين فعالين وسجّل حضورهم أو غيابهم حتى يظهر كشف الراتب.</p></div></section>
       ) : (
         <section className="card-elevated table-wrap">
+          <p className="table-note">اقرأ الجدول من اليمين: بيانات الموظف ← الحضور والإضافي ← الغيابات والخصومات ← الإجمالي والصافي. زر الملف يفتح تفاصيل الحساب لكل موظف.</p>
           <table>
             <thead>
               <tr>

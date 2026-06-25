@@ -1469,3 +1469,183 @@ select.form-input {
   border-radius: var(--radius-md);
   box-shadow: var(--shadow-md);
 }
+
+/* ═══════════════════════════════════════════
+   UX COMFORT LAYER + ENGLISH DIGITS
+   ═══════════════════════════════════════════ */
+body,
+input,
+select,
+textarea,
+button,
+table {
+  font-variant-numeric: tabular-nums;
+}
+
+input[type="number"],
+input[type="date"],
+input[type="time"],
+input[type="month"],
+.numeric-text,
+.stat-value,
+.metric-strip strong,
+.profile-facts strong,
+td,
+th {
+  unicode-bidi: plaintext;
+}
+
+input[type="number"],
+input[type="date"],
+input[type="time"],
+input[type="month"] {
+  direction: ltr;
+  text-align: left;
+}
+
+.form-group {
+  position: relative;
+}
+
+.form-group:focus-within .form-label {
+  color: var(--primary);
+}
+
+.form-help,
+.form-hint {
+  display: block;
+  line-height: 1.55;
+}
+
+.form-help {
+  padding: 8px 10px;
+  background: var(--surface-2);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.form-tip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  width: fit-content;
+  padding: 5px 10px;
+  border-radius: var(--radius-full);
+  background: var(--info-bg);
+  color: var(--info);
+  border: 1px solid var(--info-border);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.ux-guide {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.ux-guide > div,
+.rule-card {
+  display: grid;
+  gap: 4px;
+  padding: 14px 16px;
+  border-radius: var(--radius-lg);
+  background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+  border: 1px solid var(--border-light);
+  box-shadow: var(--shadow-sm);
+}
+
+.ux-guide strong,
+.rule-card strong {
+  color: var(--primary-dark);
+  font-size: 14px;
+  font-weight: 900;
+}
+
+.ux-guide span,
+.rule-card span {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.6;
+}
+
+.form-section-title {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border-radius: var(--radius-md);
+  background: var(--primary-50);
+  color: var(--primary-dark);
+  font-size: 14px;
+  font-weight: 900;
+  border: 1px solid var(--primary-100);
+}
+
+.form-section-title span {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.help-panel {
+  padding: 16px 18px;
+  border-radius: var(--radius-lg);
+  background: var(--info-bg);
+  border: 1px solid var(--info-border);
+  color: var(--text-secondary);
+  display: grid;
+  gap: 8px;
+}
+
+.help-panel strong {
+  color: var(--primary-dark);
+  font-weight: 900;
+}
+
+.help-panel p,
+.help-panel li {
+  font-size: 13px;
+  margin: 0;
+  font-weight: 650;
+  line-height: 1.7;
+}
+
+.help-panel ul {
+  margin: 0;
+  padding-inline-start: 20px;
+}
+
+.table-note {
+  margin: 0 0 14px;
+  padding: 10px 12px;
+  border-radius: var(--radius-md);
+  background: var(--surface-2);
+  color: var(--muted);
+  border: 1px solid var(--border-light);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.btn-row {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+@media (max-width: 640px) {
+  .ux-guide {
+    grid-template-columns: 1fr;
+  }
+  .card,
+  .card-elevated {
+    padding: 20px;
+  }
+}

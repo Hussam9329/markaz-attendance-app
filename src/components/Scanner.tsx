@@ -39,7 +39,7 @@ function extractToken(decodedText: string) {
 function formatStatus(data: ScanResponse | null) {
   if (!data?.record) return null;
   if (data.record.status === "late") {
-    return `تأخير ${data.record.lateMinutes} دقيقة — الخصم ${data.record.deduction.toLocaleString("ar-IQ")}`;
+    return `تأخير ${data.record.lateMinutes} دقيقة — الخصم ${data.record.deduction.toLocaleString("en-US")}`;
   }
   return "حضور ضمن الوقت";
 }

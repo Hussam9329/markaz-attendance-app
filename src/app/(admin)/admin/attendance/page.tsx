@@ -6,7 +6,7 @@ import { addManualAttendance, deleteAttendanceRecord } from "../employees/action
 export const dynamic = "force-dynamic";
 
 function money(value: number | string) {
-  return Number(value || 0).toLocaleString("ar-IQ");
+  return Number(value || 0).toLocaleString("en-US");
 }
 
 function statusLabel(record: { status: string; absence_type?: string }) {
@@ -41,7 +41,7 @@ export default async function AttendancePage({ searchParams }: { searchParams: P
   const qrRecords = records.filter((r) => r.source !== "manual");
   const manualRecords = records.filter((r) => r.source === "manual");
 
-  const dateFormatted = new Date(date + "T00:00:00").toLocaleDateString("ar-IQ", {
+  const dateFormatted = new Date(date + "T00:00:00").toLocaleDateString("ar-IQ-u-nu-latn", {
     weekday: "long", year: "numeric", month: "long", day: "numeric",
   });
 
@@ -61,32 +61,39 @@ export default async function AttendancePage({ searchParams }: { searchParams: P
           <div className="form-group">
             <label className="form-label">اختر التاريخ</label>
             <input className="form-input" name="date" type="date" defaultValue={date} />
+            <span className="form-help">غيّر التاريخ لمراجعة حضور يوم سابق أو تسجيل غياب متأخر.</span>
           </div>
           <button className="btn btn-primary" type="submit" style={{ alignSelf: "end" }}>عرض</button>
         </form>
         {date !== today && <a href="/admin/attendance" className="btn btn-secondary">اليوم</a>}
       </section>
 
+      <section className="ux-guide">
+        <div><strong>QR</strong><span>يسجل حضور المركز تلقائياً ويحسب التأخير حسب الإعدادات.</span></div>
+        <div><strong>إدخال يدوي</strong><span>استخدمه للحضور الاستثنائي أو للطاقم أو للغياب بعذر/بدون عذر.</span></div>
+        <div><strong>غياب غير محسوم</strong><span>أي موظف بلا سجل يظهر هنا حتى تحدد نوع الغياب قبل الراتب.</span></div>
+      </section>
+
       <section className="stats-grid">
         <article className="stat-card blue">
           <div className="stat-icon blue">📊</div>
           <span className="stat-label">نسبة الحضور الفعلية</span>
-          <strong className="stat-value">{attendanceRate.toLocaleString("ar-IQ")}%</strong>
+          <strong className="stat-value">{attendanceRate.toLocaleString("en-US")}%</strong>
         </article>
         <article className="stat-card green">
           <div className="stat-icon green">✅</div>
           <span className="stat-label">حضور ضمن الوقت</span>
-          <strong className="stat-value">{summary.present_count.toLocaleString("ar-IQ")}</strong>
+          <strong className="stat-value">{summary.present_count.toLocaleString("en-US")}</strong>
         </article>
         <article className="stat-card orange">
           <div className="stat-icon orange">⏰</div>
           <span className="stat-label">متأخرون</span>
-          <strong className="stat-value">{summary.late_count.toLocaleString("ar-IQ")}</strong>
+          <strong className="stat-value">{summary.late_count.toLocaleString("en-US")}</strong>
         </article>
         <article className="stat-card">
           <div className="stat-icon" style={{ background: "#fff5f5", color: "#e53e3e" }}>🚫</div>
           <span className="stat-label">غياب مسجل / غير محسوم</span>
-          <strong className="stat-value">{summary.absent_count.toLocaleString("ar-IQ")} / {absentEmployees.length.toLocaleString("ar-IQ")}</strong>
+          <strong className="stat-value">{summary.absent_count.toLocaleString("en-US")} / {absentEmployees.length.toLocaleString("en-US")}</strong>
         </article>
       </section>
 
@@ -107,11 +114,12 @@ export default async function AttendancePage({ searchParams }: { searchParams: P
                 <option key={emp.id} value={emp.id}>{emp.employee_code} — {emp.name} ({emp.department || "بدون قسم"})</option>
               ))}
             </select>
+            <span className="form-help">اختر الموظف الذي تريد إضافة سجل يدوي له في هذا التاريخ.</span>
           </div>
           <div className="form-group">
             <label className="form-label">وقت الحضور</label>
             <input className="form-input" name="local_time" type="time" defaultValue="09:00" />
-            <span className="form-hint">يُتجاهل عند اختيار غياب.</span>
+            <span className="form-help">اكتب وقت الحضور للحاضر أو المتأخر. يُتجاهل عند اختيار غياب.</span>
           </div>
           <div className="form-group">
             <label className="form-label">الحالة</label>
@@ -120,6 +128,7 @@ export default async function AttendancePage({ searchParams }: { searchParams: P
               <option value="late">⏰ متأخر</option>
               <option value="absent">🚫 غائب</option>
             </select>
+            <span className="form-help">اختر حاضر، متأخر، أو غائب. هذه الحالة تدخل في التقارير.</span>
           </div>
           <div className="form-group">
             <label className="form-label">نوع الغياب</label>
@@ -127,10 +136,12 @@ export default async function AttendancePage({ searchParams }: { searchParams: P
               <option value="unexcused">بدون عذر</option>
               <option value="excused">بعذر</option>
             </select>
+            <span className="form-help">بعذر يخصم حسب القاعدة، وبدون عذر يطبق عقوبة الغياب.</span>
           </div>
           <div className="form-group full-span">
             <label className="form-label">ملاحظة</label>
             <input className="form-input" name="note" placeholder="سبب الغياب أو التأخير، اختياري" />
+            <span className="form-help">الملاحظة تظهر في ملف الموظف وتساعد عند مراجعة الراتب.</span>
           </div>
           <button className="btn btn-primary" type="submit" style={{ alignSelf: "end" }}>✍️ تسجيل يدوي</button>
         </form>
@@ -147,6 +158,7 @@ export default async function AttendancePage({ searchParams }: { searchParams: P
           <div className="empty-state"><div className="empty-icon">📱</div><h3>لا توجد سجلات QR في هذا التاريخ</h3></div>
         ) : (
           <div className="table-wrap">
+            <p className="table-note">كل سجل QR هنا مسجل تلقائياً من الماسح. السجل اليدوي يظهر في جدول منفصل حتى يكون التمييز واضح.</p>
             <table>
               <thead>
                 <tr>
@@ -183,6 +195,7 @@ export default async function AttendancePage({ searchParams }: { searchParams: P
             </div>
           </div>
           <div className="table-wrap">
+            <p className="table-note">راجع نوع الغياب والملاحظة قبل نهاية الشهر، لأنهما يدخلان مباشرة في محرك الرواتب.</p>
             <table>
               <thead>
                 <tr>

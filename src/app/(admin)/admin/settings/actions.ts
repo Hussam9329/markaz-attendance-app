@@ -3,13 +3,14 @@
 import { requireAdmin } from "@/lib/auth";
 import { DEFAULT_SETTINGS, type AppSettings, upsertSetting } from "@/lib/settings";
 import { revalidatePath } from "next/cache";
+import { toEnglishDigits } from "@/lib/format";
 
 function text(formData: FormData, key: keyof AppSettings) {
   return String(formData.get(key) ?? DEFAULT_SETTINGS[key]).trim();
 }
 
 function positiveNumberText(formData: FormData, key: keyof AppSettings) {
-  const value = Number(text(formData, key));
+  const value = Number(toEnglishDigits(text(formData, key)));
   return String(Number.isFinite(value) && value >= 0 ? value : 0);
 }
 

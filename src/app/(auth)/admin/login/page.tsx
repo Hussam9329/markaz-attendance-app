@@ -28,6 +28,7 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
             autoFocus
             placeholder="أدخل كلمة المرور"
           />
+          <span className="form-help">هذه الكلمة خاصة بالإدارة فقط، وبعد الدخول تظهر لوحة التحكم كاملة.</span>
         </div>
         <button className="btn btn-primary btn-lg" type="submit" style={{ width: "100%" }}>
           دخول لوحة الإدارة

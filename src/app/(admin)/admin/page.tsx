@@ -6,8 +6,8 @@ import { getMonthlySalaryReport } from "@/lib/report";
 
 export const dynamic = "force-dynamic";
 
-function num(v: unknown) { return Number(v ?? 0).toLocaleString("ar-IQ"); }
-function money(v: unknown) { return Number(v ?? 0).toLocaleString("ar-IQ"); }
+function num(v: unknown) { return Number(v ?? 0).toLocaleString("en-US"); }
+function money(v: unknown) { return Number(v ?? 0).toLocaleString("en-US"); }
 
 export default async function AdminHomePage() {
   const settings = await getSettings();
@@ -53,7 +53,7 @@ export default async function AdminHomePage() {
   );
 
   const attendanceRate = activeEmployees > 0 ? Math.round((todaySummary.total_records / activeEmployees) * 100) : 0;
-  const todayFormatted = new Date().toLocaleDateString("ar-IQ", {
+  const todayFormatted = new Date().toLocaleDateString("ar-IQ-u-nu-latn", {
     weekday: "long", year: "numeric", month: "long", day: "numeric", timeZone: settings.timezone,
   });
 
@@ -70,6 +70,12 @@ export default async function AdminHomePage() {
           <a className="btn btn-secondary" href="/admin/reports">📊 مركز التقارير</a>
         </div>
       </header>
+
+      <section className="ux-guide">
+        <div><strong>ابدأ بالموظفين</strong><span>عرّف الموظف وقاعدة راتبه مرة واحدة، بعدها كل شيء ينسحب تلقائياً.</span></div>
+        <div><strong>سجل الحضور يومياً</strong><span>QR أو يدوي، ثم حسم الغياب حتى لا يبقى غير محسوم.</span></div>
+        <div><strong>راجع الرواتب</strong><span>كشف الرواتب يوضح كل إضافة وخصم قبل اعتماد الصافي.</span></div>
+      </section>
 
       <section className="stats-grid">
         <article className="stat-card blue">

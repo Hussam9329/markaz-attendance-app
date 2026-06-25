@@ -32,7 +32,7 @@ type Employee = {
 };
 
 function money(value: number | string) {
-  return Number(value || 0).toLocaleString("ar-IQ");
+  return Number(value || 0).toLocaleString("en-US");
 }
 
 function typeLabel(type: string) {
@@ -111,7 +111,7 @@ export default async function EmployeeDetailPage({
   const salaryRows = await getMonthlySalaryReport(month);
   const payroll = salaryRows.find((row) => row.employee_id === id);
   const adjustments = await getPayrollAdjustments(month, id);
-  const monthLabel = new Date(month + "-01").toLocaleDateString("ar-IQ", { month: "long", year: "numeric" });
+  const monthLabel = new Date(month + "-01").toLocaleDateString("ar-IQ-u-nu-latn", { month: "long", year: "numeric" });
 
   return (
     <div className="stack">
@@ -129,6 +129,7 @@ export default async function EmployeeDetailPage({
           <div className="form-group">
             <label className="form-label">الشهر المالي</label>
             <input className="form-input" name="month" type="month" defaultValue={month} />
+            <span className="form-help">اختر الشهر حتى يعرض الملف حضور ورواتب هذا الشهر فقط.</span>
           </div>
           <button className="btn btn-primary" type="submit" style={{ alignSelf: "end" }}>عرض</button>
         </form>
@@ -157,22 +158,23 @@ export default async function EmployeeDetailPage({
         <div style={{ display: "grid", gap: "20px" }}>
           <div className="card-elevated">
             <div className="section-heading"><div><h2>✏️ تعديل بيانات وقواعد راتب الموظف</h2><p>هذه القيم تتحكم مباشرة بمعادلة الراتب النهائي.</p></div></div>
+            <div className="help-panel" style={{ marginBottom: "16px" }}><strong>قبل التعديل</strong><p>كل خانة هنا مرتبطة بالحضور أو الراتب. عند تغيير الأيام المطلوبة أو الراتب الاسمي سيتغير كشف الراتب مباشرة.</p></div>
             <form action={updateEmployee} className="professional-form-grid compact">
               <input type="hidden" name="id" value={emp.id} />
               <input type="hidden" name="employee_type" value={emp.employee_type} />
-              <div className="form-group"><label className="form-label">كود الموظف</label><input className="form-input" name="employee_code" defaultValue={emp.employee_code} readOnly style={{ background: "#f0f4ff", cursor: "not-allowed" }} /></div>
-              <div className="form-group"><label className="form-label">الاسم</label><input className="form-input" name="name" defaultValue={emp.name} required /></div>
-              <div className="form-group"><label className="form-label">القسم</label><input className="form-input" name="department" defaultValue={emp.department} /></div>
-              <div className="form-group"><label className="form-label">الوظيفة</label><input className="form-input" name="job_title" defaultValue={emp.job_title} /></div>
-              <div className="form-group"><label className="form-label">الهاتف</label><input className="form-input" name="phone" defaultValue={emp.phone} /></div>
-              <div className="form-group"><label className="form-label">تاريخ المباشرة</label><input className="form-input" name="hire_date" type="date" defaultValue={emp.hire_date ?? ""} /></div>
-              <div className="form-group"><label className="form-label">الراتب الاسمي ({settings.currency})</label><input className="form-input" name="monthly_salary" type="number" min="0" step="0.01" defaultValue={Number(emp.monthly_salary)} /></div>
-              <div className="form-group"><label className="form-label">المخصصات الثابتة ({settings.currency})</label><input className="form-input" name="allowance" type="number" min="0" step="0.01" defaultValue={Number(emp.allowance)} /></div>
-              <div className="form-group"><label className="form-label">عدد الأيام المطلوبة</label><input className="form-input" name="required_workdays" type="number" min="0" step="1" defaultValue={Number(emp.required_workdays)} /></div>
-              <div className="form-group"><label className="form-label">أجور اليوم الإضافي ({settings.currency})</label><input className="form-input" name="overtime_day_rate" type="number" min="0" step="0.01" defaultValue={Number(emp.overtime_day_rate)} /></div>
-              <div className="form-group"><label className="form-label">مبلغ المكافأة ({settings.currency})</label><input className="form-input" name="bonus_amount" type="number" min="0" step="0.01" defaultValue={Number(emp.bonus_amount)} /></div>
-              <div className="form-group"><label className="form-label">خيارات الراتب</label><label className="check-row"><input name="overtime_enabled" type="checkbox" defaultChecked={emp.overtime_enabled} /> احتساب الأيام الإضافية</label><label className="check-row"><input name="bonus_enabled" type="checkbox" defaultChecked={emp.bonus_enabled} /> تفعيل المكافأة التلقائية</label><label className="check-row"><input name="daily_salary_mode" type="checkbox" defaultChecked={emp.daily_salary_mode} /> حساب راتب يومي حسب الحضور</label></div>
-              <div className="form-group full-span"><label className="form-label">حساب / ملاحظة مالية</label><input className="form-input" name="bank_account" defaultValue={emp.bank_account} /></div>
+              <div className="form-group"><label className="form-label">كود الموظف</label><input className="form-input" name="employee_code" defaultValue={emp.employee_code} readOnly style={{ background: "#f0f4ff", cursor: "not-allowed" }} /><span className="form-help">كود تلقائي مرتبط بالـ QR ولا يُغيّر يدوياً.</span></div>
+              <div className="form-group"><label className="form-label">الاسم</label><input className="form-input" name="name" defaultValue={emp.name} required /><span className="form-help">الاسم المعتمد في الحضور وكشف الراتب.</span></div>
+              <div className="form-group"><label className="form-label">القسم</label><input className="form-input" name="department" defaultValue={emp.department} /><span className="form-help">لترتيب الموظفين حسب القسم داخل القوائم.</span></div>
+              <div className="form-group"><label className="form-label">الوظيفة</label><input className="form-input" name="job_title" defaultValue={emp.job_title} /><span className="form-help">مثال: مصحح، مدرب، حسابات.</span></div>
+              <div className="form-group"><label className="form-label">الهاتف</label><input className="form-input" name="phone" defaultValue={emp.phone} /><span className="form-help">رقم اختياري للتواصل يظهر داخل الملف.</span></div>
+              <div className="form-group"><label className="form-label">تاريخ المباشرة</label><input className="form-input" name="hire_date" type="date" defaultValue={emp.hire_date ?? ""} /><span className="form-help">يفيد عند مراجعة من بدأ العمل خلال الشهر.</span></div>
+              <div className="form-group"><label className="form-label">الراتب الاسمي ({settings.currency})</label><input className="form-input" name="monthly_salary" type="number" min="0" step="0.01" defaultValue={Number(emp.monthly_salary)} /><span className="form-help">الراتب المتفق عليه قبل الخصومات والإضافات.</span></div>
+              <div className="form-group"><label className="form-label">المخصصات الثابتة ({settings.currency})</label><input className="form-input" name="allowance" type="number" min="0" step="0.01" defaultValue={Number(emp.allowance)} /><span className="form-help">مبلغ ثابت يضاف إلى الراتب كل شهر.</span></div>
+              <div className="form-group"><label className="form-label">عدد الأيام المطلوبة</label><input className="form-input" name="required_workdays" type="number" min="0" step="1" defaultValue={Number(emp.required_workdays)} /><span className="form-help">عند إكمال هذا العدد يستحق الراتب الاسمي.</span></div>
+              <div className="form-group"><label className="form-label">أجور اليوم الإضافي ({settings.currency})</label><input className="form-input" name="overtime_day_rate" type="number" min="0" step="0.01" defaultValue={Number(emp.overtime_day_rate)} /><span className="form-help">قيمة اليوم الزائد بعد إكمال الأيام المطلوبة.</span></div>
+              <div className="form-group"><label className="form-label">مبلغ المكافأة ({settings.currency})</label><input className="form-input" name="bonus_amount" type="number" min="0" step="0.01" defaultValue={Number(emp.bonus_amount)} /><span className="form-help">تُحتسب فقط عند تفعيل المكافأة وعدم وجود موانع.</span></div>
+              <div className="form-group"><label className="form-label">خيارات الراتب</label><label className="check-row"><input name="overtime_enabled" type="checkbox" defaultChecked={emp.overtime_enabled} /> احتساب الأيام الإضافية</label><label className="check-row"><input name="bonus_enabled" type="checkbox" defaultChecked={emp.bonus_enabled} /> تفعيل المكافأة التلقائية</label><label className="check-row"><input name="daily_salary_mode" type="checkbox" defaultChecked={emp.daily_salary_mode} /> حساب راتب يومي حسب الحضور</label><span className="form-help">فعّل فقط القواعد المناسبة لعقد هذا الموظف.</span></div>
+              <div className="form-group full-span"><label className="form-label">حساب / ملاحظة مالية</label><input className="form-input" name="bank_account" defaultValue={emp.bank_account} /><span className="form-help">رقم حساب أو محفظة أو ملاحظة دفع خاصة بالموظف.</span></div>
               <label className="check-row"><input name="active" type="checkbox" defaultChecked={emp.active} /> موظف فعّال</label>
               <button className="btn btn-primary" type="submit">💾 حفظ التعديل</button>
             </form>
@@ -200,9 +202,9 @@ export default async function EmployeeDetailPage({
         <form action={addPayrollAdjustment} className="professional-form-grid compact">
           <input type="hidden" name="employee_id" value={emp.id} />
           <input type="hidden" name="month" value={month} />
-          <div className="form-group"><label className="form-label">النوع</label><select className="form-input" name="type" defaultValue="deduction"><option value="deduction">خصم يدوي</option><option value="advance">سلفة</option><option value="late_deduction">خصم تأخير</option><option value="absence_deduction">خصم غياب</option><option value="addition">إضافة يدوية</option><option value="task">مهمة خارجية / بيتية</option><option value="bonus">مكافأة يدوية</option></select></div>
-          <div className="form-group"><label className="form-label">المبلغ ({settings.currency})</label><input className="form-input" name="amount" type="number" min="0" step="0.01" required /></div>
-          <div className="form-group full-span"><label className="form-label">الملاحظة</label><input className="form-input" name="note" required placeholder="مثال: مهمة تصحيح بيتية / سلفة / خصم إداري" /></div>
+          <div className="form-group"><label className="form-label">النوع</label><select className="form-input" name="type" defaultValue="deduction"><option value="deduction">خصم يدوي</option><option value="advance">سلفة</option><option value="late_deduction">خصم تأخير</option><option value="absence_deduction">خصم غياب</option><option value="addition">إضافة يدوية</option><option value="task">مهمة خارجية / بيتية</option><option value="bonus">مكافأة يدوية</option></select><span className="form-help">اختر هل القيد يزيد الراتب أو ينقصه.</span></div>
+          <div className="form-group"><label className="form-label">المبلغ ({settings.currency})</label><input className="form-input" name="amount" type="number" min="0" step="0.01" required /><span className="form-help">اكتب المبلغ بالإنكليزي فقط، مثال: 25000.</span></div>
+          <div className="form-group full-span"><label className="form-label">الملاحظة</label><input className="form-input" name="note" required placeholder="مثال: مهمة تصحيح بيتية / سلفة / خصم إداري" /><span className="form-help">الملاحظة إلزامية حتى يكون سبب القيد واضحاً عند المراجعة.</span></div>
           <label className="check-row"><input name="affects_bonus" type="checkbox" defaultChecked /> هذا الخصم يمنع المكافأة التلقائية</label>
           <button className="btn btn-primary" type="submit">إضافة القيد</button>
         </form>

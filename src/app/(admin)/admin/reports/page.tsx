@@ -7,7 +7,7 @@ import { getMonthlySalaryReport } from "@/lib/report";
 export const dynamic = "force-dynamic";
 
 function money(value: number | string) {
-  return Number(value || 0).toLocaleString("ar-IQ");
+  return Number(value || 0).toLocaleString("en-US");
 }
 
 export default async function ReportsPage({ searchParams }: { searchParams: Promise<{ month?: string; date?: string }> }) {
@@ -54,8 +54,8 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
   const dayAttendance = daySummary.present_count + daySummary.late_count;
   const dayTotal = daySummary.total_records + absentToday;
   const dayRate = dayTotal > 0 ? Math.round((dayAttendance / dayTotal) * 100) : 0;
-  const monthLabel = new Date(month + "-01").toLocaleDateString("ar-IQ", { month: "long", year: "numeric" });
-  const dateLabel = new Date(date + "T00:00:00").toLocaleDateString("ar-IQ", { weekday: "long", year: "numeric", month: "long", day: "numeric" });
+  const monthLabel = new Date(month + "-01").toLocaleDateString("ar-IQ-u-nu-latn", { month: "long", year: "numeric" });
+  const dateLabel = new Date(date + "T00:00:00").toLocaleDateString("ar-IQ-u-nu-latn", { weekday: "long", year: "numeric", month: "long", day: "numeric" });
 
   return (
     <div className="stack">
@@ -68,15 +68,23 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
         <a className="btn btn-accent" href={`/api/reports/monthly.csv?month=${month}`}>📥 تنزيل كشف الرواتب</a>
       </header>
 
+      <section className="ux-guide">
+        <div><strong>تقرير يومي</strong><span>يعرض حضور يوم محدد مع المتأخرين والغياب غير المحسوم.</span></div>
+        <div><strong>تقرير شهري</strong><span>يعرض الرواتب والخصومات وصافي كل موظف لنفس الشهر.</span></div>
+        <div><strong>تصدير CSV</strong><span>استخدمه للأرشفة أو المراجعة المحاسبية خارج النظام.</span></div>
+      </section>
+
       <section className="card report-toolbar">
         <form className="toolbar-form" method="get">
           <div className="form-group">
             <label className="form-label">شهر الرواتب</label>
             <input className="form-input" name="month" type="month" defaultValue={month} />
+            <span className="form-help">يحدد شهر كشف الرواتب والملخص المالي.</span>
           </div>
           <div className="form-group">
             <label className="form-label">تاريخ الحضور</label>
             <input className="form-input" name="date" type="date" defaultValue={date} />
+            <span className="form-help">يحدد يوم الحضور الذي تريد مراجعته.</span>
           </div>
           <button className="btn btn-primary" type="submit" style={{ alignSelf: "end" }}>تحديث التقرير</button>
         </form>
@@ -86,22 +94,22 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
         <article className="stat-card blue">
           <div className="stat-icon blue">👥</div>
           <span className="stat-label">الموظفون الفعالون / الكلي</span>
-          <strong className="stat-value">{activeEmployees.toLocaleString("ar-IQ")} / {totalEmployees.toLocaleString("ar-IQ")}</strong>
+          <strong className="stat-value">{activeEmployees.toLocaleString("en-US")} / {totalEmployees.toLocaleString("en-US")}</strong>
         </article>
         <article className="stat-card green">
           <div className="stat-icon green">📈</div>
           <span className="stat-label">نسبة حضور اليوم</span>
-          <strong className="stat-value">{dayRate.toLocaleString("ar-IQ")}%</strong>
+          <strong className="stat-value">{dayRate.toLocaleString("en-US")}%</strong>
         </article>
         <article className="stat-card orange">
           <div className="stat-icon orange">⏰</div>
           <span className="stat-label">أيام التأخير الشهرية</span>
-          <strong className="stat-value">{totals.lateDays.toLocaleString("ar-IQ")}</strong>
+          <strong className="stat-value">{totals.lateDays.toLocaleString("en-US")}</strong>
         </article>
         <article className="stat-card">
           <div className="stat-icon" style={{ background: "#fff5f5", color: "#e53e3e" }}>🚫</div>
           <span className="stat-label">أيام الغياب الشهرية</span>
-          <strong className="stat-value">{totals.absentDays.toLocaleString("ar-IQ")}</strong>
+          <strong className="stat-value">{totals.absentDays.toLocaleString("en-US")}</strong>
         </article>
       </section>
 
@@ -128,7 +136,7 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
           <div className="step-number">📋</div>
           <div className="step-text">
             <strong>تقرير الحضور اليومي</strong>
-            <span>{dateLabel}: حضور {daySummary.total_records.toLocaleString("ar-IQ")}، تأخير {daySummary.late_count.toLocaleString("ar-IQ")}، غياب مسجل {daySummary.absent_count.toLocaleString("ar-IQ")}، غير محسوم {absentToday.toLocaleString("ar-IQ")}</span>
+            <span>{dateLabel}: حضور {daySummary.total_records.toLocaleString("en-US")}، تأخير {daySummary.late_count.toLocaleString("en-US")}، غياب مسجل {daySummary.absent_count.toLocaleString("en-US")}، غير محسوم {absentToday.toLocaleString("en-US")}</span>
           </div>
         </a>
         <a href={`/admin/salaries?month=${month}`} className="step-card action-card">
@@ -168,6 +176,8 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
             <p>أضف موظفين وسجلات حضور ليظهر التقرير.</p>
           </div>
         ) : (
+          <>
+          <p className="table-note">هذا الجدول مختصر سريع. افتح ملف الموظف لمشاهدة تفاصيل الراتب والقيود المالية وسجل الحضور.</p>
           <table>
             <thead>
               <tr>
@@ -184,14 +194,15 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
                 <tr key={row.employee_id}>
                   <td style={{ fontWeight: 800 }}><a href={`/admin/employees/${row.employee_id}?month=${month}`}>{row.name}</a></td>
                   <td>{row.department || "—"}</td>
-                  <td>{row.attendance_days.toLocaleString("ar-IQ")}</td>
-                  <td>{row.absent_days.toLocaleString("ar-IQ")}</td>
+                  <td>{row.attendance_days.toLocaleString("en-US")}</td>
+                  <td>{row.absent_days.toLocaleString("en-US")}</td>
                   <td style={{ color: "var(--error)", fontWeight: 700 }}>{money(row.total_deductions)} {settings.currency}</td>
                   <td><strong style={{ color: "var(--success)" }}>{money(row.net_salary)} {settings.currency}</strong></td>
                 </tr>
               ))}
             </tbody>
           </table>
+          </>
         )}
       </section>
     </div>

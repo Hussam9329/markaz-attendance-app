@@ -3,6 +3,7 @@
 import { requireAdmin } from "@/lib/auth";
 import { getDb } from "@/lib/db";
 import { revalidatePath } from "next/cache";
+import { toEnglishDigits } from "@/lib/format";
 
 function text(formData: FormData, key: string) {
   return String(formData.get(key) ?? "").trim();
@@ -14,12 +15,12 @@ function nullableText(formData: FormData, key: string) {
 }
 
 function money(formData: FormData, key: string) {
-  const value = Number(text(formData, key));
+  const value = Number(toEnglishDigits(text(formData, key)));
   return Number.isFinite(value) && value >= 0 ? value : 0;
 }
 
 function positiveInt(formData: FormData, key: string) {
-  const value = Math.floor(Number(text(formData, key)));
+  const value = Math.floor(Number(toEnglishDigits(text(formData, key))));
   return Number.isFinite(value) && value >= 0 ? value : 0;
 }
 
