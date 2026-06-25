@@ -102,3 +102,39 @@ DROP TRIGGER IF EXISTS app_settings_set_updated_at ON app_settings;
 CREATE TRIGGER app_settings_set_updated_at
 BEFORE UPDATE ON app_settings
 FOR EACH ROW EXECUTE FUNCTION set_updated_at();
+
+-- Payroll engine v2: employee-specific salary rules
+ALTER TABLE employees ADD COLUMN IF NOT EXISTS required_workdays integer NOT NULL DEFAULT 0 CHECK (required_workdays >= 0);
+ALTER TABLE employees ADD COLUMN IF NOT EXISTS overtime_day_rate numeric(12, 2) NOT NULL DEFAULT 0 CHECK (overtime_day_rate >= 0);
+ALTER TABLE employees ADD COLUMN IF NOT EXISTS bonus_amount numeric(12, 2) NOT NULL DEFAULT 0 CHECK (bonus_amount >= 0);
+ALTER TABLE employees ADD COLUMN IF NOT EXISTS daily_salary_mode boolean NOT NULL DEFAULT false;
+ALTER TABLE employees ADD COLUMN IF NOT EXISTS overtime_enabled boolean NOT NULL DEFAULT true;
+ALTER TABLE employees ADD COLUMN IF NOT EXISTS bonus_enabled boolean NOT NULL DEFAULT false;
+
+-- Attendance v2: explicit absence classification with note
+ALTER TABLE attendance_records DROP CONSTRAINT IF EXISTS attendance_records_status_check;
+ALTER TABLE attendance_records ADD CONSTRAINT attendance_records_status_check CHECK (status IN ('present', 'late', 'absent'));
+ALTER TABLE attendance_records ADD COLUMN IF NOT EXISTS absence_type text;
+ALTER TABLE attendance_records DROP CONSTRAINT IF EXISTS attendance_records_absence_type_check;
+ALTER TABLE attendance_records ADD CONSTRAINT attendance_records_absence_type_check CHECK (absence_type IS NULL OR absence_type IN ('excused', 'unexcused'));
+ALTER TABLE attendance_records ADD COLUMN IF NOT EXISTS note text NOT NULL DEFAULT '';
+
+CREATE TABLE IF NOT EXISTS payroll_adjustments (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  employee_id uuid NOT NULL REFERENCES employees(id) ON DELETE CASCADE,
+  month char(7) NOT NULL CHECK (month ~ '^\\d{4}-\\d{2}$'),
+  type text NOT NULL CHECK (type IN ('addition', 'task', 'bonus', 'deduction', 'advance', 'late_deduction', 'absence_deduction')),
+  amount numeric(12, 2) NOT NULL CHECK (amount >= 0),
+  note text NOT NULL DEFAULT '',
+  affects_bonus boolean NOT NULL DEFAULT true,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+
+INSERT INTO app_settings (key, value) VALUES
+  ('unexcused_absence_penalty', '10'),
+  ('after_required_unexcused_absence_penalty', '10')
+ON CONFLICT (key) DO NOTHING;
+
+CREATE INDEX IF NOT EXISTS payroll_adjustments_employee_month_idx ON payroll_adjustments(employee_id, month);
+CREATE INDEX IF NOT EXISTS payroll_adjustments_month_idx ON payroll_adjustments(month);
+CREATE INDEX IF NOT EXISTS attendance_records_status_idx ON attendance_records(status);

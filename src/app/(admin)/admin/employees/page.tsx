@@ -19,6 +19,12 @@ type Employee = {
   bank_account: string;
   monthly_salary: number | string;
   allowance: number | string;
+  required_workdays: number | string;
+  overtime_day_rate: number | string;
+  bonus_amount: number | string;
+  daily_salary_mode: boolean;
+  overtime_enabled: boolean;
+  bonus_enabled: boolean;
   qr_token: string;
   active: boolean;
 };
@@ -31,6 +37,10 @@ type EmployeeWithDetails = Employee & {
   total_deductions: number;
   gross_salary: number;
   net_salary: number;
+  required_workdays_report: number;
+  extra_days: number;
+  overtime_amount: number;
+  automatic_bonus: number;
 };
 
 async function qrDataUrl(token: string) {
@@ -72,6 +82,12 @@ export default async function EmployeesPage() {
         COALESCE(bank_account, '') AS bank_account,
         monthly_salary,
         COALESCE(allowance, 0) AS allowance,
+        COALESCE(required_workdays, 0) AS required_workdays,
+        COALESCE(overtime_day_rate, 0) AS overtime_day_rate,
+        COALESCE(bonus_amount, 0) AS bonus_amount,
+        COALESCE(daily_salary_mode, false) AS daily_salary_mode,
+        COALESCE(overtime_enabled, true) AS overtime_enabled,
+        COALESCE(bonus_enabled, false) AS bonus_enabled,
         qr_token,
         active
       FROM employees
@@ -96,6 +112,10 @@ export default async function EmployeesPage() {
           total_deductions: report?.total_deductions ?? 0,
           gross_salary: report?.gross_salary ?? salary + allowance,
           net_salary: report?.net_salary ?? salary + allowance,
+          required_workdays_report: report?.required_workdays ?? Number(emp.required_workdays || 0),
+          extra_days: report?.extra_days ?? 0,
+          overtime_amount: report?.overtime_amount ?? 0,
+          automatic_bonus: report?.automatic_bonus ?? 0,
         };
       })
     );
@@ -187,6 +207,25 @@ export default async function EmployeesPage() {
             <label className="form-label">المخصصات ({settings.currency})</label>
             <input className="form-input" name="allowance" type="number" min="0" step="0.01" defaultValue="0" />
           </div>
+          <div className="form-group">
+            <label className="form-label">عدد الأيام المطلوبة</label>
+            <input className="form-input" name="required_workdays" type="number" min="0" step="1" defaultValue="16" />
+            <span className="form-hint">مثال المصححين: 16، الدوام الكامل: 30.</span>
+          </div>
+          <div className="form-group">
+            <label className="form-label">أجور اليوم الإضافي ({settings.currency})</label>
+            <input className="form-input" name="overtime_day_rate" type="number" min="0" step="0.01" defaultValue="25" />
+          </div>
+          <div className="form-group">
+            <label className="form-label">مبلغ المكافأة ({settings.currency})</label>
+            <input className="form-input" name="bonus_amount" type="number" min="0" step="0.01" defaultValue="0" />
+          </div>
+          <div className="form-group">
+            <label className="form-label">قواعد الاحتساب</label>
+            <label className="check-row"><input name="overtime_enabled" type="checkbox" defaultChecked /> احتساب الأيام الإضافية</label>
+            <label className="check-row"><input name="bonus_enabled" type="checkbox" /> تفعيل المكافأة التلقائية</label>
+            <label className="check-row"><input name="daily_salary_mode" type="checkbox" /> حساب راتب يومي حسب الحضور</label>
+          </div>
           <div className="form-group full-span">
             <label className="form-label">حساب / ملاحظة مالية</label>
             <input className="form-input" name="bank_account" placeholder="اختياري: رقم حساب، محفظة، أو ملاحظة دفع" />
@@ -243,9 +282,9 @@ export default async function EmployeesPage() {
               </div>
 
               <div className="metric-strip">
-                <div><span>الإجمالي</span><strong>{money(emp.gross_salary)}</strong></div>
+                <div><span>المطلوب</span><strong>{emp.required_workdays_report}</strong></div>
                 <div><span>حضور</span><strong>{emp.attendance_days}</strong></div>
-                <div><span>غياب</span><strong>{emp.absent_days}</strong></div>
+                <div><span>إضافي</span><strong>{emp.extra_days}</strong></div>
                 <div><span>الصافي</span><strong>{money(emp.net_salary)}</strong></div>
               </div>
 
@@ -292,6 +331,28 @@ export default async function EmployeesPage() {
                   <div className="form-group">
                     <label className="form-label">المخصصات</label>
                     <input className="form-input" name="allowance" type="number" min="0" step="0.01" defaultValue={Number(emp.allowance)} />
+                  </div>
+                </div>
+                <div className="form-row">
+                  <div className="form-group">
+                    <label className="form-label">الأيام المطلوبة</label>
+                    <input className="form-input" name="required_workdays" type="number" min="0" step="1" defaultValue={Number(emp.required_workdays)} />
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">اليوم الإضافي</label>
+                    <input className="form-input" name="overtime_day_rate" type="number" min="0" step="0.01" defaultValue={Number(emp.overtime_day_rate)} />
+                  </div>
+                </div>
+                <div className="form-row">
+                  <div className="form-group">
+                    <label className="form-label">مبلغ المكافأة</label>
+                    <input className="form-input" name="bonus_amount" type="number" min="0" step="0.01" defaultValue={Number(emp.bonus_amount)} />
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">خيارات الراتب</label>
+                    <label className="check-row"><input name="overtime_enabled" type="checkbox" defaultChecked={emp.overtime_enabled} /> إضافي</label>
+                    <label className="check-row"><input name="bonus_enabled" type="checkbox" defaultChecked={emp.bonus_enabled} /> مكافأة</label>
+                    <label className="check-row"><input name="daily_salary_mode" type="checkbox" defaultChecked={emp.daily_salary_mode} /> يومي</label>
                   </div>
                 </div>
                 <div className="form-group">

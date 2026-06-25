@@ -22,51 +22,35 @@ export default async function SalariesPage({ searchParams }: { searchParams: Pro
 
   const totals = rows.reduce(
     (acc, row) => ({
-      base: acc.base + row.monthly_salary,
+      base: acc.base + row.salary_base_calculated,
       allowance: acc.allowance + row.allowance,
+      overtime: acc.overtime + row.overtime_amount,
+      bonus: acc.bonus + row.automatic_bonus,
+      additions: acc.additions + row.manual_additions,
       gross: acc.gross + row.gross_salary,
       late: acc.late + row.late_deductions,
       absence: acc.absence + row.absence_deductions,
+      manualDeductions: acc.manualDeductions + row.manual_deductions,
       deductions: acc.deductions + row.total_deductions,
       net: acc.net + row.net_salary,
       attendance: acc.attendance + row.attendance_days,
       absenceDays: acc.absenceDays + row.absent_days,
+      extraDays: acc.extraDays + row.extra_days,
     }),
-    { base: 0, allowance: 0, gross: 0, late: 0, absence: 0, deductions: 0, net: 0, attendance: 0, absenceDays: 0 }
+    { base: 0, allowance: 0, overtime: 0, bonus: 0, additions: 0, gross: 0, late: 0, absence: 0, manualDeductions: 0, deductions: 0, net: 0, attendance: 0, absenceDays: 0, extraDays: 0 }
   );
 
-  // Separate by type
   const centerRows = rows.filter((r) => r.employee_type !== "crew");
   const crewRows = rows.filter((r) => r.employee_type === "crew");
-
-  const centerTotals = centerRows.reduce(
-    (acc, row) => ({
-      gross: acc.gross + row.gross_salary,
-      deductions: acc.deductions + row.total_deductions,
-      net: acc.net + row.net_salary,
-    }),
-    { gross: 0, deductions: 0, net: 0 }
-  );
-
-  const crewTotals = crewRows.reduce(
-    (acc, row) => ({
-      gross: acc.gross + row.gross_salary,
-      deductions: acc.deductions + row.total_deductions,
-      net: acc.net + row.net_salary,
-    }),
-    { gross: 0, deductions: 0, net: 0 }
-  );
-
   const monthLabel = new Date(month + "-01").toLocaleDateString("ar-IQ", { month: "long", year: "numeric" });
-  const expectedWorkdays = rows[0]?.expected_workdays ?? Number(settings.workdays_per_month || 0);
 
   return (
     <div className="stack">
       <header className="page-header">
         <div>
           <div className="page-tag">&#128176; الرواتب</div>
-          <h1>كشف الرواتب والخصومات الشهرية</h1>
-          <p>احتساب الراتب الأساسي، المخصصات، خصم التأخير، خصم الغياب، وصافي الراتب — {monthLabel}</p>
+          <h1>كشف الرواتب الذكي</h1>
+          <p>راتب اسمي + أيام إضافية + مكافآت + مهام − غياب بعذر/بدون عذر − تأخير − قيود يدوية — {monthLabel}</p>
         </div>
         <a className="btn btn-accent" href={`/api/reports/monthly.csv?month=${month}`}>📥 تنزيل CSV</a>
       </header>
@@ -76,7 +60,7 @@ export default async function SalariesPage({ searchParams }: { searchParams: Pro
           <div className="form-group">
             <label className="form-label">اختر الشهر</label>
             <input className="form-input" name="month" type="month" defaultValue={month} />
-            <span className="form-hint">الأيام المتوقعة لهذا الكشف: {expectedWorkdays.toLocaleString("ar-IQ")} يوم عمل</span>
+            <span className="form-hint">عقوبة بدون عذر بعد إكمال المطلوب: {money(settings.after_required_unexcused_absence_penalty)} {settings.currency}</span>
           </div>
           <button className="btn btn-primary" type="submit" style={{ alignSelf: "end" }}>عرض</button>
         </form>
@@ -84,113 +68,56 @@ export default async function SalariesPage({ searchParams }: { searchParams: Pro
       </section>
 
       <section className="stats-grid">
-        <article className="stat-card blue">
-          <div className="stat-icon blue">💵</div>
-          <span className="stat-label">إجمالي المستحق</span>
-          <strong className="stat-value">{money(totals.gross)} {settings.currency}</strong>
-        </article>
-        <article className="stat-card">
-          <div className="stat-icon" style={{ background: "#fff5f5", color: "#e53e3e" }}>📉</div>
-          <span className="stat-label">إجمالي الخصومات</span>
-          <strong className="stat-value" style={{ color: "var(--error)" }}>{money(totals.deductions)} {settings.currency}</strong>
-        </article>
-        <article className="stat-card green">
-          <div className="stat-icon green">✅</div>
-          <span className="stat-label">صافي الرواتب</span>
-          <strong className="stat-value" style={{ color: "var(--success)" }}>{money(totals.net)} {settings.currency}</strong>
-        </article>
-        <article className="stat-card orange">
-          <div className="stat-icon orange">🚫</div>
-          <span className="stat-label">إجمالي أيام الغياب</span>
-          <strong className="stat-value">{totals.absenceDays.toLocaleString("ar-IQ")}</strong>
-        </article>
+        <article className="stat-card blue"><div className="stat-icon blue">💵</div><span className="stat-label">الراتب المحتسب</span><strong className="stat-value">{money(totals.base)} {settings.currency}</strong></article>
+        <article className="stat-card green"><div className="stat-icon green">➕</div><span className="stat-label">إضافي + مكافآت + قيود موجبة</span><strong className="stat-value">{money(totals.overtime + totals.bonus + totals.additions + totals.allowance)} {settings.currency}</strong></article>
+        <article className="stat-card"><div className="stat-icon" style={{ background: "#fff5f5", color: "#e53e3e" }}>📉</div><span className="stat-label">إجمالي الخصومات</span><strong className="stat-value" style={{ color: "var(--error)" }}>{money(totals.deductions)} {settings.currency}</strong></article>
+        <article className="stat-card green"><div className="stat-icon green">✅</div><span className="stat-label">صافي الرواتب</span><strong className="stat-value" style={{ color: "var(--success)" }}>{money(totals.net)} {settings.currency}</strong></article>
       </section>
 
-      {/* Type Breakdown */}
-      <section className="stats-grid" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))" }}>
-        <article className="stat-card green">
-          <div className="stat-icon green">🏢</div>
-          <span className="stat-label">صافي رواتب المركز ({centerRows.length} موظف)</span>
-          <strong className="stat-value" style={{ color: "var(--success)" }}>{money(centerTotals.net)} {settings.currency}</strong>
-        </article>
-        <article className="stat-card orange">
-          <div className="stat-icon orange">🔧</div>
-          <span className="stat-label">صافي رواتب الطاقم ({crewRows.length} موظف)</span>
-          <strong className="stat-value" style={{ color: "var(--accent-dark)" }}>{money(crewTotals.net)} {settings.currency}</strong>
-        </article>
+      <section className="stats-grid" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))" }}>
+        <article className="stat-card blue"><span className="stat-label">أيام الحضور</span><strong className="stat-value">{totals.attendance.toLocaleString("ar-IQ")}</strong></article>
+        <article className="stat-card green"><span className="stat-label">الأيام الإضافية</span><strong className="stat-value">{totals.extraDays.toLocaleString("ar-IQ")}</strong></article>
+        <article className="stat-card orange"><span className="stat-label">أيام الغياب</span><strong className="stat-value">{totals.absenceDays.toLocaleString("ar-IQ")}</strong></article>
+        <article className="stat-card"><span className="stat-label">عدد المركز / الطاقم</span><strong className="stat-value">{centerRows.length.toLocaleString("ar-IQ")} / {crewRows.length.toLocaleString("ar-IQ")}</strong></article>
       </section>
 
       <section className="steps-grid payroll-breakdown">
-        <article className="step-card">
-          <div className="step-number">1</div>
-          <div className="step-text"><strong>الراتب الأساسي</strong><span>{money(totals.base)} {settings.currency}</span></div>
-        </article>
-        <article className="step-card">
-          <div className="step-number">+</div>
-          <div className="step-text"><strong>المخصصات</strong><span>{money(totals.allowance)} {settings.currency}</span></div>
-        </article>
-        <article className="step-card">
-          <div className="step-number">−</div>
-          <div className="step-text"><strong>خصم التأخير</strong><span>{money(totals.late)} {settings.currency}</span></div>
-        </article>
-        <article className="step-card">
-          <div className="step-number">−</div>
-          <div className="step-text"><strong>خصم الغياب</strong><span>{money(totals.absence)} {settings.currency}</span></div>
-        </article>
+        <article className="step-card"><div className="step-number">1</div><div className="step-text"><strong>الراتب المحتسب</strong><span>{money(totals.base)} {settings.currency}</span></div></article>
+        <article className="step-card"><div className="step-number">+</div><div className="step-text"><strong>أيام إضافية</strong><span>{money(totals.overtime)} {settings.currency}</span></div></article>
+        <article className="step-card"><div className="step-number">+</div><div className="step-text"><strong>مكافآت تلقائية</strong><span>{money(totals.bonus)} {settings.currency}</span></div></article>
+        <article className="step-card"><div className="step-number">−</div><div className="step-text"><strong>غياب وتأخير ويدوي</strong><span>{money(totals.deductions)} {settings.currency}</span></div></article>
       </section>
 
       {rows.length === 0 ? (
-        <section className="card">
-          <div className="empty-state">
-            <div className="empty-icon">💰</div>
-            <h3>لا توجد بيانات رواتب لهذا الشهر</h3>
-            <p>أضف موظفين فعالين وسجّل حضورهم حتى يظهر كشف الراتب.</p>
-          </div>
-        </section>
+        <section className="card"><div className="empty-state"><div className="empty-icon">💰</div><h3>لا توجد بيانات رواتب لهذا الشهر</h3><p>أضف موظفين فعالين وسجّل حضورهم أو غيابهم حتى يظهر كشف الراتب.</p></div></section>
       ) : (
         <section className="card-elevated table-wrap">
           <table>
             <thead>
               <tr>
-                <th>الكود</th>
-                <th>الموظف</th>
-                <th>النوع</th>
-                <th>القسم</th>
-                <th>الوظيفة</th>
-                <th>الراتب</th>
-                <th>المخصصات</th>
-                <th>المستحق</th>
-                <th>الحضور</th>
-                <th>الغياب</th>
-                <th>التأخير</th>
-                <th>خصم التأخير</th>
-                <th>خصم الغياب</th>
-                <th>إجمالي الخصم</th>
-                <th>صافي الراتب</th>
-                <th>الملف</th>
+                <th>الكود</th><th>الموظف</th><th>النوع</th><th>الوظيفة</th><th>الراتب الاسمي</th><th>المطلوب</th><th>الحضور</th><th>الإضافي</th><th>أجر الإضافي</th><th>غياب بعذر</th><th>غياب بدون عذر</th><th>خصم الغياب</th><th>خصم التأخير</th><th>قيود +</th><th>قيود −</th><th>مكافأة</th><th>الإجمالي</th><th>الصافي</th><th>الملف</th>
               </tr>
             </thead>
             <tbody>
               {rows.map((row) => (
                 <tr key={row.employee_id} className={row.employee_type === "crew" ? "crew-row" : ""}>
                   <td>{row.employee_code || "—"}</td>
-                  <td style={{ fontWeight: 700 }}>{row.name}</td>
-                  <td>
-                    <span className={`type-badge ${row.employee_type === "crew" ? "badge-crew" : "badge-center"}`}>
-                      {row.employee_type === "crew" ? "🔧 طاقم" : "🏢 مركز"}
-                    </span>
-                  </td>
-                  <td>{row.department || "—"}</td>
+                  <td style={{ fontWeight: 800 }}>{row.name}</td>
+                  <td><span className={`type-badge ${row.employee_type === "crew" ? "badge-crew" : "badge-center"}`}>{row.employee_type === "crew" ? "🔧 طاقم" : "🏢 مركز"}</span></td>
                   <td>{row.job_title || "—"}</td>
-                  <td>{money(row.monthly_salary)} {settings.currency}</td>
-                  <td>{money(row.allowance)} {settings.currency}</td>
-                  <td><strong>{money(row.gross_salary)} {settings.currency}</strong></td>
-                  <td>{row.attendance_days.toLocaleString("ar-IQ")}</td>
-                  <td style={{ color: row.absent_days > 0 ? "var(--error)" : undefined, fontWeight: 700 }}>{row.absent_days.toLocaleString("ar-IQ")}</td>
-                  <td>{row.late_days.toLocaleString("ar-IQ")} يوم / {row.total_late_minutes.toLocaleString("ar-IQ")} د</td>
-                  <td style={{ color: "var(--error)", fontWeight: 700 }}>{money(row.late_deductions)} {settings.currency}</td>
-                  <td style={{ color: "var(--error)", fontWeight: 700 }}>{money(row.absence_deductions)} {settings.currency}</td>
-                  <td style={{ color: "var(--error)", fontWeight: 700 }}>{money(row.total_deductions)} {settings.currency}</td>
+                  <td>{money(row.monthly_salary)}</td>
+                  <td>{row.required_workdays}</td>
+                  <td>{row.attendance_days}</td>
+                  <td>{row.extra_days}</td>
+                  <td>{money(row.overtime_amount)}</td>
+                  <td>{row.absent_excused_days}</td>
+                  <td>{row.absent_unexcused_days}</td>
+                  <td style={{ color: row.absence_deductions > 0 ? "var(--error)" : undefined, fontWeight: 700 }}>{money(row.absence_deductions)}</td>
+                  <td style={{ color: row.late_deductions > 0 ? "var(--error)" : undefined, fontWeight: 700 }}>{money(row.late_deductions)}</td>
+                  <td>{money(row.manual_additions)}</td>
+                  <td style={{ color: row.manual_deductions > 0 ? "var(--error)" : undefined }}>{money(row.manual_deductions)}</td>
+                  <td>{row.bonus_eligible ? `✅ ${money(row.automatic_bonus)}` : row.bonus_enabled ? "محجوبة" : "—"}</td>
+                  <td><strong>{money(row.gross_salary)}</strong></td>
                   <td><strong style={{ color: "var(--success)" }}>{money(row.net_salary)} {settings.currency}</strong></td>
                   <td><a href={`/admin/employees/${row.employee_id}?month=${month}`} className="btn btn-ghost btn-sm">📄</a></td>
                 </tr>
@@ -198,22 +125,7 @@ export default async function SalariesPage({ searchParams }: { searchParams: Pro
             </tbody>
             <tfoot>
               <tr style={{ background: "var(--surface-2)", fontWeight: 900 }}>
-                <td>الإجمالي</td>
-                <td></td>
-                <td></td>
-                <td></td>
-                <td></td>
-                <td>{money(totals.base)} {settings.currency}</td>
-                <td>{money(totals.allowance)} {settings.currency}</td>
-                <td>{money(totals.gross)} {settings.currency}</td>
-                <td>{totals.attendance.toLocaleString("ar-IQ")}</td>
-                <td>{totals.absenceDays.toLocaleString("ar-IQ")}</td>
-                <td></td>
-                <td style={{ color: "var(--error)" }}>{money(totals.late)} {settings.currency}</td>
-                <td style={{ color: "var(--error)" }}>{money(totals.absence)} {settings.currency}</td>
-                <td style={{ color: "var(--error)" }}>{money(totals.deductions)} {settings.currency}</td>
-                <td style={{ color: "var(--success)" }}>{money(totals.net)} {settings.currency}</td>
-                <td></td>
+                <td>الإجمالي</td><td></td><td></td><td></td><td>{money(rows.reduce((s, r) => s + r.monthly_salary, 0))}</td><td></td><td>{totals.attendance}</td><td>{totals.extraDays}</td><td>{money(totals.overtime)}</td><td></td><td></td><td>{money(totals.absence)}</td><td>{money(totals.late)}</td><td>{money(totals.additions)}</td><td>{money(totals.manualDeductions)}</td><td>{money(totals.bonus)}</td><td>{money(totals.gross)}</td><td style={{ color: "var(--success)" }}>{money(totals.net)} {settings.currency}</td><td></td>
               </tr>
             </tfoot>
           </table>

@@ -11,7 +11,9 @@ export type AttendanceRecord = {
   job_title: string;
   local_date: string;
   local_time: string;
-  status: "present" | "late";
+  status: "present" | "late" | "absent";
+  absence_type: "excused" | "unexcused" | "";
+  note: string;
   late_minutes: number;
   deduction: number;
   source: string;
@@ -21,6 +23,7 @@ export type DaySummary = {
   total_records: number;
   present_count: number;
   late_count: number;
+  absent_count: number;
   total_late_minutes: number;
   total_deductions: number;
 };
@@ -60,7 +63,9 @@ function mapAttendanceRecord(r: Record<string, unknown>): AttendanceRecord {
     job_title: toStr(r.job_title),
     local_date: toStr(r.local_date),
     local_time: toStr(r.local_time),
-    status: (r.status === "late" ? "late" : "present") as "present" | "late",
+    status: (r.status === "absent" ? "absent" : r.status === "late" ? "late" : "present") as "present" | "late" | "absent",
+    absence_type: (r.absence_type === "excused" ? "excused" : r.absence_type === "unexcused" ? "unexcused" : "") as "excused" | "unexcused" | "",
+    note: toStr(r.note),
     late_minutes: toNum(r.late_minutes),
     deduction: toNum(r.deduction),
     source: toStr(r.source) || "qr",
@@ -81,6 +86,8 @@ export async function getAttendanceByDate(date: string): Promise<AttendanceRecor
       a.local_date::text,
       a.local_time::text,
       a.status,
+      a.absence_type,
+      COALESCE(a.note, '') AS note,
       a.late_minutes,
       a.deduction,
       COALESCE(a.source, 'qr') AS source
@@ -132,6 +139,7 @@ export async function getDaySummary(date: string): Promise<DaySummary> {
       COUNT(*)::int AS total_records,
       COUNT(*) FILTER (WHERE status = 'present')::int AS present_count,
       COUNT(*) FILTER (WHERE status = 'late')::int AS late_count,
+      COUNT(*) FILTER (WHERE status = 'absent')::int AS absent_count,
       COALESCE(SUM(late_minutes), 0)::int AS total_late_minutes,
       COALESCE(SUM(deduction), 0) AS total_deductions
     FROM attendance_records
@@ -142,6 +150,7 @@ export async function getDaySummary(date: string): Promise<DaySummary> {
     total_records: toNum(r.total_records),
     present_count: toNum(r.present_count),
     late_count: toNum(r.late_count),
+    absent_count: toNum(r.absent_count),
     total_late_minutes: toNum(r.total_late_minutes),
     total_deductions: toNum(r.total_deductions),
   };
@@ -162,6 +171,8 @@ export async function getEmployeeAttendance(employeeId: string, month: string): 
       a.local_date::text,
       a.local_time::text,
       a.status,
+      a.absence_type,
+      COALESCE(a.note, '') AS note,
       a.late_minutes,
       a.deduction,
       COALESCE(a.source, 'qr') AS source
@@ -180,8 +191,11 @@ export async function getEmployeeMonthSummary(employeeId: string, month: string)
   const { start, end } = monthBounds(month);
   const rows = await db`
     SELECT
-      COUNT(*)::int AS attendance_days,
+      COUNT(*) FILTER (WHERE status IN ('present', 'late'))::int AS attendance_days,
       COUNT(*) FILTER (WHERE status = 'late')::int AS late_days,
+      COUNT(*) FILTER (WHERE status = 'absent')::int AS absent_days,
+      COUNT(*) FILTER (WHERE status = 'absent' AND absence_type = 'excused')::int AS absent_excused_days,
+      COUNT(*) FILTER (WHERE status = 'absent' AND COALESCE(absence_type, 'unexcused') = 'unexcused')::int AS absent_unexcused_days,
       COALESCE(SUM(late_minutes), 0)::int AS total_late_minutes,
       COALESCE(SUM(deduction), 0) AS total_deductions
     FROM attendance_records
@@ -193,6 +207,9 @@ export async function getEmployeeMonthSummary(employeeId: string, month: string)
   return {
     attendance_days: toNum(r.attendance_days),
     late_days: toNum(r.late_days),
+    absent_days: toNum(r.absent_days),
+    absent_excused_days: toNum(r.absent_excused_days),
+    absent_unexcused_days: toNum(r.absent_unexcused_days),
     total_late_minutes: toNum(r.total_late_minutes),
     total_deductions: toNum(r.total_deductions),
   };
@@ -212,6 +229,8 @@ export async function getRecentAttendance(limit = 8): Promise<AttendanceRecord[]
       a.local_date::text,
       a.local_time::text,
       a.status,
+      a.absence_type,
+      COALESCE(a.note, '') AS note,
       a.late_minutes,
       a.deduction,
       COALESCE(a.source, 'qr') AS source
@@ -234,6 +253,28 @@ export async function getCrewEmployees(): Promise<CrewEmployee[]> {
       COALESCE(job_title, '') AS job_title
     FROM employees
     WHERE active = true AND employee_type = 'crew'
+    ORDER BY name ASC
+  `;
+  return (rows as Record<string, unknown>[]).map((r) => ({
+    id: toStr(r.id),
+    employee_code: toStr(r.employee_code),
+    name: toStr(r.name),
+    department: toStr(r.department),
+    job_title: toStr(r.job_title),
+  }));
+}
+
+export async function getActiveEmployees(): Promise<CrewEmployee[]> {
+  const db = getDb();
+  const rows = await db`
+    SELECT
+      id,
+      COALESCE(employee_code, '') AS employee_code,
+      name,
+      COALESCE(department, '') AS department,
+      COALESCE(job_title, '') AS job_title
+    FROM employees
+    WHERE active = true
     ORDER BY name ASC
   `;
   return (rows as Record<string, unknown>[]).map((r) => ({

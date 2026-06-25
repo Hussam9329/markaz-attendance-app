@@ -11,8 +11,8 @@ export default async function SettingsPage() {
       <header className="page-header">
         <div>
           <div className="page-tag">&#9881; الإعدادات</div>
-          <h1>إعدادات المركز</h1>
-          <p>تحديد قواعد الخصم والتأخير والعملة لجميع الموظفين</p>
+          <h1>إعدادات المركز وقواعد الرواتب</h1>
+          <p>تحديد قواعد التأخير، أيام العمل المرجعية، وعقوبات الغياب المعتمدة في محرك الرواتب الجديد.</p>
         </div>
       </header>
 
@@ -21,7 +21,7 @@ export default async function SettingsPage() {
           <div className="form-group">
             <label className="form-label">اسم المركز في الواجهة</label>
             <input className="form-input" name="center_name" defaultValue={settings.center_name} required />
-            <span className="form-hint">يظهر في واجهة التابلت الرئيسية</span>
+            <span className="form-hint">يظهر في واجهة التابلت الرئيسية.</span>
           </div>
 
           <div className="settings-grid">
@@ -49,7 +49,7 @@ export default async function SettingsPage() {
                 defaultValue={settings.late_after_time}
                 required
               />
-              <span className="form-hint">أي حضور بعد هذا الوقت يُحسب تأخيراً</span>
+              <span className="form-hint">أي حضور بعد هذا الوقت يُحسب تأخيراً.</span>
             </div>
 
             <div className="form-group">
@@ -63,22 +63,52 @@ export default async function SettingsPage() {
                 defaultValue={settings.late_deduction_per_minute}
                 required
               />
-              <span className="form-hint">يُخصم من الراتب الشهري عند التأخير</span>
+              <span className="form-hint">يُخصم من الراتب الشهري عند التأخير.</span>
             </div>
           </div>
 
-          <div className="form-group" style={{ maxWidth: "320px" }}>
-            <label className="form-label">أيام العمل الشهرية</label>
+          <div className="settings-grid">
+            <div className="form-group">
+              <label className="form-label">أيام العمل الشهرية الافتراضية</label>
+              <input
+                className="form-input"
+                name="workdays_per_month"
+                type="number"
+                min="0"
+                step="1"
+                defaultValue={settings.workdays_per_month}
+                required
+              />
+              <span className="form-hint">تُستخدم كقيمة احتياطية إذا لم يتم تحديد الأيام المطلوبة داخل ملف الموظف.</span>
+            </div>
+
+            <div className="form-group">
+              <label className="form-label">عقوبة الغياب بدون عذر قبل إكمال المطلوب</label>
+              <input
+                className="form-input"
+                name="unexcused_absence_penalty"
+                type="number"
+                min="0"
+                step="0.01"
+                defaultValue={settings.unexcused_absence_penalty}
+                required
+              />
+              <span className="form-hint">تضاف فوق قيمة اليوم. مثال: يوم قيمته 25 + عقوبة 10 = خصم 35.</span>
+            </div>
+          </div>
+
+          <div className="form-group" style={{ maxWidth: "420px" }}>
+            <label className="form-label">عقوبة الغياب بدون عذر بعد إكمال المطلوب</label>
             <input
               className="form-input"
-              name="workdays_per_month"
+              name="after_required_unexcused_absence_penalty"
               type="number"
               min="0"
-              step="1"
-              defaultValue={settings.workdays_per_month}
+              step="0.01"
+              defaultValue={settings.after_required_unexcused_absence_penalty}
               required
             />
-            <span className="form-hint">للعرض والمرجعية فقط</span>
+            <span className="form-hint">القرار المعتمد: 10 فقط، حتى يطلع مثال 400 + يومين إضافي − غيابين بدون عذر = 430.</span>
           </div>
 
           <button className="btn btn-primary btn-lg" type="submit" style={{ marginTop: "8px", width: "fit-content" }}>

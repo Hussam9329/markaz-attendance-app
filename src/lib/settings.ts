@@ -7,6 +7,8 @@ export type AppSettings = {
   late_after_time: string;
   late_deduction_per_minute: string;
   workdays_per_month: string;
+  unexcused_absence_penalty: string;
+  after_required_unexcused_absence_penalty: string;
 };
 
 export const DEFAULT_SETTINGS: AppSettings = {
@@ -15,7 +17,9 @@ export const DEFAULT_SETTINGS: AppSettings = {
   currency: "IQD",
   late_after_time: "09:00:00",
   late_deduction_per_minute: "0",
-  workdays_per_month: "26"
+  workdays_per_month: "30",
+  unexcused_absence_penalty: "10",
+  after_required_unexcused_absence_penalty: "10"
 };
 
 export async function getSettings(): Promise<AppSettings> {

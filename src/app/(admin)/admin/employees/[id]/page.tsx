@@ -1,9 +1,9 @@
 import { getDb } from "@/lib/db";
 import { getSettings } from "@/lib/settings";
 import { currentMonth } from "@/lib/time";
-import { getEmployeeAttendance, getEmployeeMonthSummary } from "@/lib/attendance";
-import { getMonthlySalaryReport } from "@/lib/report";
-import { updateEmployee, regenerateQr } from "../actions";
+import { getEmployeeAttendance } from "@/lib/attendance";
+import { getMonthlySalaryReport, getPayrollAdjustments } from "@/lib/report";
+import { addPayrollAdjustment, deletePayrollAdjustment, regenerateQr, updateEmployee } from "../actions";
 import QRCode from "qrcode";
 import Link from "next/link";
 
@@ -21,6 +21,12 @@ type Employee = {
   bank_account: string;
   monthly_salary: number | string;
   allowance: number | string;
+  required_workdays: number | string;
+  overtime_day_rate: number | string;
+  bonus_amount: number | string;
+  daily_salary_mode: boolean;
+  overtime_enabled: boolean;
+  bonus_enabled: boolean;
   qr_token: string;
   active: boolean;
 };
@@ -31,6 +37,25 @@ function money(value: number | string) {
 
 function typeLabel(type: string) {
   return type === "crew" ? "موظف طاقم (يدوي)" : "موظف مركز (QR)";
+}
+
+function adjustmentLabel(type: string) {
+  const labels: Record<string, string> = {
+    addition: "إضافة يدوية",
+    task: "مهمة خارجية / بيتية",
+    bonus: "مكافأة يدوية",
+    deduction: "خصم يدوي",
+    advance: "سلفة",
+    late_deduction: "خصم تأخير",
+    absence_deduction: "خصم غياب",
+  };
+  return labels[type] ?? type;
+}
+
+function statusLabel(record: { status: string; absence_type?: string }) {
+  if (record.status === "absent") return record.absence_type === "excused" ? "🚫 غياب بعذر" : "🚫 غياب بدون عذر";
+  if (record.status === "late") return "⏰ متأخر";
+  return "✅ حاضر";
 }
 
 export default async function EmployeeDetailPage({
@@ -57,8 +82,14 @@ export default async function EmployeeDetailPage({
       COALESCE(phone, '') AS phone,
       hire_date::text,
       COALESCE(bank_account, '') AS bank_account,
-      monthly_salary,
+      COALESCE(monthly_salary, 0) AS monthly_salary,
       COALESCE(allowance, 0) AS allowance,
+      COALESCE(required_workdays, 0) AS required_workdays,
+      COALESCE(overtime_day_rate, 0) AS overtime_day_rate,
+      COALESCE(bonus_amount, 0) AS bonus_amount,
+      COALESCE(daily_salary_mode, false) AS daily_salary_mode,
+      COALESCE(overtime_enabled, true) AS overtime_enabled,
+      COALESCE(bonus_enabled, false) AS bonus_enabled,
       qr_token,
       active
     FROM employees WHERE id = ${id}
@@ -66,13 +97,7 @@ export default async function EmployeeDetailPage({
   const emp = (rows as Employee[])[0];
   if (!emp) {
     return (
-      <div className="stack">
-        <div className="empty-state">
-          <div className="empty-icon">❌</div>
-          <h3>الموظف غير موجود</h3>
-          <a href="/admin/employees" className="btn btn-primary">العودة للموظفين</a>
-        </div>
-      </div>
+      <div className="stack"><div className="empty-state"><div className="empty-icon">❌</div><h3>الموظف غير موجود</h3><a href="/admin/employees" className="btn btn-primary">العودة للموظفين</a></div></div>
     );
   }
 
@@ -82,21 +107,10 @@ export default async function EmployeeDetailPage({
     color: { dark: "#1e3a5f", light: "#ffffff" },
   }) : "";
 
-  const summary = await getEmployeeMonthSummary(id, month);
   const records = await getEmployeeAttendance(id, month);
   const salaryRows = await getMonthlySalaryReport(month);
   const payroll = salaryRows.find((row) => row.employee_id === id);
-
-  const salary = Number(emp.monthly_salary || 0);
-  const allowance = Number(emp.allowance || 0);
-  const grossSalary = payroll?.gross_salary ?? salary + allowance;
-  const expectedWorkdays = payroll?.expected_workdays ?? Number(settings.workdays_per_month || 0);
-  const absentDays = payroll?.absent_days ?? Math.max(expectedWorkdays - summary.attendance_days, 0);
-  const lateDeductions = payroll?.late_deductions ?? summary.total_deductions;
-  const absenceDeductions = payroll?.absence_deductions ?? 0;
-  const totalDeductions = payroll?.total_deductions ?? lateDeductions;
-  const netSalary = payroll?.net_salary ?? Math.max(grossSalary - totalDeductions, 0);
-
+  const adjustments = await getPayrollAdjustments(month, id);
   const monthLabel = new Date(month + "-01").toLocaleDateString("ar-IQ", { month: "long", year: "numeric" });
 
   return (
@@ -105,16 +119,9 @@ export default async function EmployeeDetailPage({
         <div>
           <div className="page-tag">&#128100; ملف الموظف</div>
           <h1>{emp.name}</h1>
-          <p>
-            {emp.employee_code || "بدون كود"} · {emp.department || "بدون قسم"} · {emp.job_title || "بدون وصف وظيفي"} ·
-            <span className={`type-badge ${emp.employee_type === "crew" ? "badge-crew" : "badge-center"}`} style={{ marginRight: "6px" }}>
-              {typeLabel(emp.employee_type)}
-            </span>
-          </p>
+          <p>{emp.employee_code || "بدون كود"} · {emp.department || "بدون قسم"} · {emp.job_title || "بدون وصف وظيفي"} · <span className={`type-badge ${emp.employee_type === "crew" ? "badge-crew" : "badge-center"}`}>{typeLabel(emp.employee_type)}</span></p>
         </div>
-        <Link href="/admin/employees" className="btn btn-secondary">
-          → العودة للموظفين
-        </Link>
+        <Link href="/admin/employees" className="btn btn-secondary">→ العودة للموظفين</Link>
       </header>
 
       <section className="card report-toolbar">
@@ -132,159 +139,112 @@ export default async function EmployeeDetailPage({
         <aside className="card-elevated profile-side-card">
           {isCenter ? (
             <>
-              <div className="employee-qr profile-qr">
-                <img src={qr} alt={`QR ${emp.name}`} />
-              </div>
-              <form action={regenerateQr}>
-                <input type="hidden" name="id" value={emp.id} />
-                <button className="btn btn-ghost btn-sm" type="submit" style={{ justifySelf: "center" }}>🔄 توليد QR جديد</button>
-              </form>
+              <div className="employee-qr profile-qr"><img src={qr} alt={`QR ${emp.name}`} /></div>
+              <form action={regenerateQr}><input type="hidden" name="id" value={emp.id} /><button className="btn btn-ghost btn-sm" type="submit">🔄 توليد QR جديد</button></form>
             </>
-          ) : (
-            <div className="crew-profile-icon">
-              <div style={{ fontSize: "64px", textAlign: "center" }}>🔧</div>
-              <div style={{ textAlign: "center", color: "var(--accent-dark)", fontWeight: 700, fontSize: "16px" }}>
-                موظف طاقم
-              </div>
-              <div style={{ textAlign: "center", color: "var(--muted)", fontSize: "13px" }}>
-                الحضور والرواتب تُدخل يدوياً
-              </div>
-            </div>
-          )}
-          <span className={`badge-active ${emp.active ? "on" : "off"}`} style={{ justifySelf: "center", fontSize: "14px", padding: "6px 18px" }}>
-            {emp.active ? "● موظف فعّال" : "○ موظف متوقف"}
-          </span>
+          ) : <div className="crew-profile-icon"><div style={{ fontSize: "64px", textAlign: "center" }}>🔧</div><div style={{ textAlign: "center", color: "var(--accent-dark)", fontWeight: 700 }}>موظف طاقم</div></div>}
+          <span className={`badge-active ${emp.active ? "on" : "off"}`} style={{ justifySelf: "center", fontSize: "14px", padding: "6px 18px" }}>{emp.active ? "● موظف فعّال" : "○ موظف متوقف"}</span>
           <div className="profile-facts">
             <div><span>الكود</span><strong>{emp.employee_code || "—"}</strong></div>
             <div><span>النوع</span><strong>{typeLabel(emp.employee_type)}</strong></div>
-            <div><span>القسم</span><strong>{emp.department || "—"}</strong></div>
-            <div><span>الهاتف</span><strong>{emp.phone || "—"}</strong></div>
-            <div><span>المباشرة</span><strong>{emp.hire_date || "—"}</strong></div>
+            <div><span>الأيام المطلوبة</span><strong>{payroll?.required_workdays ?? (emp.required_workdays || "—")}</strong></div>
+            <div><span>قيمة اليوم</span><strong>{money(payroll?.day_value ?? 0)}</strong></div>
+            <div><span>اليوم الإضافي</span><strong>{money(payroll?.overtime_day_rate ?? Number(emp.overtime_day_rate || 0))}</strong></div>
             <div><span>الدفع</span><strong>{emp.bank_account || "—"}</strong></div>
           </div>
         </aside>
 
         <div style={{ display: "grid", gap: "20px" }}>
           <div className="card-elevated">
-            <div className="section-heading">
-              <div>
-                <h2>✏️ تعديل بيانات الموظف</h2>
-                <p>هذه البيانات تُستخدم في كشف الراتب والتقارير الإدارية.</p>
-              </div>
-            </div>
+            <div className="section-heading"><div><h2>✏️ تعديل بيانات وقواعد راتب الموظف</h2><p>هذه القيم تتحكم مباشرة بمعادلة الراتب النهائي.</p></div></div>
             <form action={updateEmployee} className="professional-form-grid compact">
               <input type="hidden" name="id" value={emp.id} />
               <input type="hidden" name="employee_type" value={emp.employee_type} />
-              <div className="form-group">
-                <label className="form-label">كود الموظف</label>
-                <input className="form-input" name="employee_code" defaultValue={emp.employee_code} readOnly style={{ background: "#f0f4ff", cursor: "not-allowed" }} />
-                <span className="form-hint">يتم توليده تلقائياً ولا يمكن تعديله</span>
-              </div>
-              <div className="form-group">
-                <label className="form-label">الاسم</label>
-                <input className="form-input" name="name" defaultValue={emp.name} required />
-              </div>
-              <div className="form-group">
-                <label className="form-label">القسم</label>
-                <input className="form-input" name="department" defaultValue={emp.department} />
-              </div>
-              <div className="form-group">
-                <label className="form-label">الوظيفة</label>
-                <input className="form-input" name="job_title" defaultValue={emp.job_title} />
-              </div>
-              <div className="form-group">
-                <label className="form-label">الهاتف</label>
-                <input className="form-input" name="phone" defaultValue={emp.phone} />
-              </div>
-              <div className="form-group">
-                <label className="form-label">تاريخ المباشرة</label>
-                <input className="form-input" name="hire_date" type="date" defaultValue={emp.hire_date ?? ""} />
-              </div>
-              <div className="form-group">
-                <label className="form-label">الراتب الأساسي ({settings.currency})</label>
-                <input className="form-input" name="monthly_salary" type="number" min="0" step="0.01" defaultValue={Number(emp.monthly_salary)} />
-              </div>
-              <div className="form-group">
-                <label className="form-label">المخصصات ({settings.currency})</label>
-                <input className="form-input" name="allowance" type="number" min="0" step="0.01" defaultValue={Number(emp.allowance)} />
-              </div>
-              <div className="form-group full-span">
-                <label className="form-label">حساب / ملاحظة مالية</label>
-                <input className="form-input" name="bank_account" defaultValue={emp.bank_account} />
-              </div>
-              <label className="check-row">
-                <input name="active" type="checkbox" defaultChecked={emp.active} />
-                موظف فعّال
-              </label>
+              <div className="form-group"><label className="form-label">كود الموظف</label><input className="form-input" name="employee_code" defaultValue={emp.employee_code} readOnly style={{ background: "#f0f4ff", cursor: "not-allowed" }} /></div>
+              <div className="form-group"><label className="form-label">الاسم</label><input className="form-input" name="name" defaultValue={emp.name} required /></div>
+              <div className="form-group"><label className="form-label">القسم</label><input className="form-input" name="department" defaultValue={emp.department} /></div>
+              <div className="form-group"><label className="form-label">الوظيفة</label><input className="form-input" name="job_title" defaultValue={emp.job_title} /></div>
+              <div className="form-group"><label className="form-label">الهاتف</label><input className="form-input" name="phone" defaultValue={emp.phone} /></div>
+              <div className="form-group"><label className="form-label">تاريخ المباشرة</label><input className="form-input" name="hire_date" type="date" defaultValue={emp.hire_date ?? ""} /></div>
+              <div className="form-group"><label className="form-label">الراتب الاسمي ({settings.currency})</label><input className="form-input" name="monthly_salary" type="number" min="0" step="0.01" defaultValue={Number(emp.monthly_salary)} /></div>
+              <div className="form-group"><label className="form-label">المخصصات الثابتة ({settings.currency})</label><input className="form-input" name="allowance" type="number" min="0" step="0.01" defaultValue={Number(emp.allowance)} /></div>
+              <div className="form-group"><label className="form-label">عدد الأيام المطلوبة</label><input className="form-input" name="required_workdays" type="number" min="0" step="1" defaultValue={Number(emp.required_workdays)} /></div>
+              <div className="form-group"><label className="form-label">أجور اليوم الإضافي ({settings.currency})</label><input className="form-input" name="overtime_day_rate" type="number" min="0" step="0.01" defaultValue={Number(emp.overtime_day_rate)} /></div>
+              <div className="form-group"><label className="form-label">مبلغ المكافأة ({settings.currency})</label><input className="form-input" name="bonus_amount" type="number" min="0" step="0.01" defaultValue={Number(emp.bonus_amount)} /></div>
+              <div className="form-group"><label className="form-label">خيارات الراتب</label><label className="check-row"><input name="overtime_enabled" type="checkbox" defaultChecked={emp.overtime_enabled} /> احتساب الأيام الإضافية</label><label className="check-row"><input name="bonus_enabled" type="checkbox" defaultChecked={emp.bonus_enabled} /> تفعيل المكافأة التلقائية</label><label className="check-row"><input name="daily_salary_mode" type="checkbox" defaultChecked={emp.daily_salary_mode} /> حساب راتب يومي حسب الحضور</label></div>
+              <div className="form-group full-span"><label className="form-label">حساب / ملاحظة مالية</label><input className="form-input" name="bank_account" defaultValue={emp.bank_account} /></div>
+              <label className="check-row"><input name="active" type="checkbox" defaultChecked={emp.active} /> موظف فعّال</label>
               <button className="btn btn-primary" type="submit">💾 حفظ التعديل</button>
             </form>
           </div>
 
           <div className="card-elevated">
-            <div className="section-heading">
-              <div>
-                <h2>💰 ملخص الراتب — {monthLabel}</h2>
-                <p>الغياب يُحسب من أيام العمل الشهرية في الإعدادات، والتأخير حسب وقت بداية التأخير.</p>
-              </div>
-            </div>
+            <div className="section-heading"><div><h2>💰 تفصيل الراتب — {monthLabel}</h2><p>محرك الراتب الجديد: اسمي + إضافي + مكافآت + مهام − غيابات/تأخير/خصومات.</p></div></div>
             <div className="stats-grid" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))" }}>
-              <article className="stat-card blue"><span className="stat-label">الراتب الأساسي</span><strong className="stat-value small-stat">{money(salary)}</strong></article>
-              <article className="stat-card green"><span className="stat-label">المخصصات</span><strong className="stat-value small-stat">{money(allowance)}</strong></article>
-              <article className="stat-card blue"><span className="stat-label">إجمالي المستحق</span><strong className="stat-value small-stat">{money(grossSalary)}</strong></article>
-              <article className="stat-card green"><span className="stat-label">أيام الحضور</span><strong className="stat-value small-stat">{summary.attendance_days}</strong></article>
-              <article className="stat-card orange"><span className="stat-label">أيام الغياب</span><strong className="stat-value small-stat">{absentDays}</strong></article>
-              <article className="stat-card orange"><span className="stat-label">أيام التأخير</span><strong className="stat-value small-stat">{summary.late_days}</strong></article>
-              <article className="stat-card"><span className="stat-label">خصم التأخير</span><strong className="stat-value small-stat" style={{ color: "var(--error)" }}>{money(lateDeductions)}</strong></article>
-              <article className="stat-card"><span className="stat-label">خصم الغياب</span><strong className="stat-value small-stat" style={{ color: "var(--error)" }}>{money(absenceDeductions)}</strong></article>
-              <article className="stat-card green"><span className="stat-label">صافي الراتب</span><strong className="stat-value small-stat" style={{ color: "var(--success)" }}>{money(netSalary)}</strong></article>
+              <article className="stat-card blue"><span className="stat-label">الراتب المحتسب</span><strong className="stat-value small-stat">{money(payroll?.salary_base_calculated ?? emp.monthly_salary)}</strong></article>
+              <article className="stat-card green"><span className="stat-label">الحضور / المطلوب</span><strong className="stat-value small-stat">{payroll?.attendance_days ?? 0} / {payroll?.required_workdays ?? 0}</strong></article>
+              <article className="stat-card blue"><span className="stat-label">الأيام الإضافية</span><strong className="stat-value small-stat">{payroll?.extra_days ?? 0}</strong></article>
+              <article className="stat-card green"><span className="stat-label">أجور الإضافي</span><strong className="stat-value small-stat">{money(payroll?.overtime_amount ?? 0)}</strong></article>
+              <article className="stat-card orange"><span className="stat-label">غياب بعذر / بدون</span><strong className="stat-value small-stat">{payroll?.absent_excused_days ?? 0} / {payroll?.absent_unexcused_days ?? 0}</strong></article>
+              <article className="stat-card"><span className="stat-label">خصم الغياب</span><strong className="stat-value small-stat" style={{ color: "var(--error)" }}>{money(payroll?.absence_deductions ?? 0)}</strong></article>
+              <article className="stat-card"><span className="stat-label">خصم التأخير</span><strong className="stat-value small-stat" style={{ color: "var(--error)" }}>{money(payroll?.late_deductions ?? 0)}</strong></article>
+              <article className="stat-card green"><span className="stat-label">المكافأة التلقائية</span><strong className="stat-value small-stat">{money(payroll?.automatic_bonus ?? 0)}</strong></article>
+              <article className="stat-card green"><span className="stat-label">صافي الراتب</span><strong className="stat-value small-stat" style={{ color: "var(--success)" }}>{money(payroll?.net_salary ?? 0)}</strong></article>
             </div>
           </div>
         </div>
       </section>
 
       <section className="card-elevated">
-        <div className="section-heading">
-          <div>
-            <h2>📋 سجل الحضور — {monthLabel}</h2>
-            <p>الأيام المتوقعة لهذا الكشف: {expectedWorkdays.toLocaleString("ar-IQ")} يوم عمل. {isCenter ? "الحضور مسجل بواسطة QR." : "الحضور مدخل يدوياً."}</p>
+        <div className="section-heading"><div><h2>➕ قيود مالية للشهر — {monthLabel}</h2><p>كل خصم أو مكافأة أو مهمة خارجية يجب أن يكون معها ملاحظة.</p></div></div>
+        <form action={addPayrollAdjustment} className="professional-form-grid compact">
+          <input type="hidden" name="employee_id" value={emp.id} />
+          <input type="hidden" name="month" value={month} />
+          <div className="form-group"><label className="form-label">النوع</label><select className="form-input" name="type" defaultValue="deduction"><option value="deduction">خصم يدوي</option><option value="advance">سلفة</option><option value="late_deduction">خصم تأخير</option><option value="absence_deduction">خصم غياب</option><option value="addition">إضافة يدوية</option><option value="task">مهمة خارجية / بيتية</option><option value="bonus">مكافأة يدوية</option></select></div>
+          <div className="form-group"><label className="form-label">المبلغ ({settings.currency})</label><input className="form-input" name="amount" type="number" min="0" step="0.01" required /></div>
+          <div className="form-group full-span"><label className="form-label">الملاحظة</label><input className="form-input" name="note" required placeholder="مثال: مهمة تصحيح بيتية / سلفة / خصم إداري" /></div>
+          <label className="check-row"><input name="affects_bonus" type="checkbox" defaultChecked /> هذا الخصم يمنع المكافأة التلقائية</label>
+          <button className="btn btn-primary" type="submit">إضافة القيد</button>
+        </form>
+
+        {adjustments.length > 0 && (
+          <div className="table-wrap" style={{ marginTop: "18px" }}>
+            <table>
+              <thead><tr><th>النوع</th><th>المبلغ</th><th>الملاحظة</th><th>يمنع المكافأة</th><th>حذف</th></tr></thead>
+              <tbody>
+                {adjustments.map((item) => (
+                  <tr key={item.id}>
+                    <td>{adjustmentLabel(item.type)}</td>
+                    <td style={{ fontWeight: 800 }}>{money(item.amount)} {settings.currency}</td>
+                    <td>{item.note}</td>
+                    <td>{item.affects_bonus ? "نعم" : "لا"}</td>
+                    <td><form action={deletePayrollAdjustment}><input type="hidden" name="adjustment_id" value={item.id} /><input type="hidden" name="employee_id" value={emp.id} /><button className="btn btn-ghost btn-sm" type="submit" style={{ color: "var(--error)" }}>🗑️</button></form></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
-        </div>
+        )}
+      </section>
+
+      <section className="card-elevated">
+        <div className="section-heading"><div><h2>📋 سجل الحضور والغياب — {monthLabel}</h2><p>الغيابات هنا تدخل مباشرة في حساب الراتب حسب ترتيبها الزمني.</p></div></div>
         {records.length === 0 ? (
-          <div className="empty-state" style={{ padding: "30px" }}>
-            <div className="empty-icon" style={{ width: "56px", height: "56px", fontSize: "24px" }}>📋</div>
-            <h3 style={{ fontSize: "16px" }}>لا توجد سجلات حضور هذا الشهر</h3>
-            <p style={{ fontSize: "13px" }}>
-              {isCenter ? "سيظهر السجل فور تسجيل أول حضور بالـ QR" : "يمكن إدخال الحضور يدوياً من صفحة الحضور والغياب"}
-            </p>
-          </div>
+          <div className="empty-state" style={{ padding: "30px" }}><div className="empty-icon">📋</div><h3>لا توجد سجلات لهذا الشهر</h3></div>
         ) : (
           <div className="table-wrap">
             <table>
-              <thead>
-                <tr>
-                  <th>التاريخ</th>
-                  <th>وقت الحضور</th>
-                  <th>الحالة</th>
-                  <th>دقائق التأخير</th>
-                  <th>الخصم</th>
-                  <th>المصدر</th>
-                </tr>
-              </thead>
+              <thead><tr><th>التاريخ</th><th>وقت الحضور</th><th>الحالة</th><th>دقائق التأخير</th><th>خصم التأخير</th><th>الملاحظة</th><th>المصدر</th></tr></thead>
               <tbody>
                 {records.map((r) => (
                   <tr key={r.id}>
                     <td>{r.local_date}</td>
-                    <td style={{ fontWeight: 700 }}>{r.local_time}</td>
-                    <td>
-                      <span className={`badge-active ${r.status === "present" ? "on" : "off"}`}>
-                        {r.status === "present" ? "✅ حاضر" : "⏰ متأخر"}
-                      </span>
-                    </td>
+                    <td style={{ fontWeight: 700 }}>{r.status === "absent" ? "—" : r.local_time}</td>
+                    <td><span className={`badge-active ${r.status === "present" ? "on" : "off"}`}>{statusLabel(r)}</span></td>
                     <td>{r.late_minutes > 0 ? `${r.late_minutes} دقيقة` : "—"}</td>
                     <td>{r.deduction > 0 ? <span style={{ color: "var(--error)", fontWeight: 700 }}>{money(r.deduction)}</span> : "—"}</td>
-                    <td>
-                      <span className="source-badge">{(r as Record<string, unknown>).source === "manual" ? "✍️ يدوي" : "📱 QR"}</span>
-                    </td>
+                    <td>{r.note || "—"}</td>
+                    <td><span className="source-badge">{r.source === "manual" ? "✍️ يدوي" : "📱 QR"}</span></td>
                   </tr>
                 ))}
               </tbody>

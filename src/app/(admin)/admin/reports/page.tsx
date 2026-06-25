@@ -20,7 +20,7 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
   let totalEmployees = 0;
   let activeEmployees = 0;
   let monthlyRows: Awaited<ReturnType<typeof getMonthlySalaryReport>> = [];
-  let daySummary = { total_records: 0, present_count: 0, late_count: 0, total_late_minutes: 0, total_deductions: 0 };
+  let daySummary = { total_records: 0, present_count: 0, late_count: 0, absent_count: 0, total_late_minutes: 0, total_deductions: 0 };
   let absentToday = 0;
 
   try {
@@ -51,8 +51,9 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
     { gross: 0, deductions: 0, net: 0, lateDays: 0, absentDays: 0, attendanceDays: 0 }
   );
 
+  const dayAttendance = daySummary.present_count + daySummary.late_count;
   const dayTotal = daySummary.total_records + absentToday;
-  const dayRate = dayTotal > 0 ? Math.round((daySummary.total_records / dayTotal) * 100) : 0;
+  const dayRate = dayTotal > 0 ? Math.round((dayAttendance / dayTotal) * 100) : 0;
   const monthLabel = new Date(month + "-01").toLocaleDateString("ar-IQ", { month: "long", year: "numeric" });
   const dateLabel = new Date(date + "T00:00:00").toLocaleDateString("ar-IQ", { weekday: "long", year: "numeric", month: "long", day: "numeric" });
 
@@ -127,7 +128,7 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
           <div className="step-number">📋</div>
           <div className="step-text">
             <strong>تقرير الحضور اليومي</strong>
-            <span>{dateLabel}: حضور {daySummary.total_records.toLocaleString("ar-IQ")}، تأخير {daySummary.late_count.toLocaleString("ar-IQ")}، غياب {absentToday.toLocaleString("ar-IQ")}</span>
+            <span>{dateLabel}: حضور {daySummary.total_records.toLocaleString("ar-IQ")}، تأخير {daySummary.late_count.toLocaleString("ar-IQ")}، غياب مسجل {daySummary.absent_count.toLocaleString("ar-IQ")}، غير محسوم {absentToday.toLocaleString("ar-IQ")}</span>
           </div>
         </a>
         <a href={`/admin/salaries?month=${month}`} className="step-card action-card">
