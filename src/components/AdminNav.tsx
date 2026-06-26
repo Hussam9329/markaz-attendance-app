@@ -1,5 +1,8 @@
+"use client";
+
 import Link from "next/link";
 import Image from "next/image";
+import { usePathname } from "next/navigation";
 
 const NAV = [
   { href: "/admin", label: "الرئيسية", icon: "🏠" },
@@ -11,6 +14,8 @@ const NAV = [
 ];
 
 export default function AdminNav() {
+  const pathname = usePathname();
+
   return (
     <aside className="admin-sidebar">
       <div className="sidebar-header">
@@ -26,12 +31,15 @@ export default function AdminNav() {
       </div>
 
       <nav className="sidebar-nav">
-        {NAV.map((item) => (
-          <Link key={item.href} href={item.href}>
-            <span className="nav-icon">{item.icon}</span>
-            {item.label}
-          </Link>
-        ))}
+        {NAV.map((item) => {
+          const isActive = item.href === "/admin" ? pathname === "/admin" : pathname.startsWith(item.href);
+          return (
+            <Link key={item.href} href={item.href} className={isActive ? "active" : undefined} aria-current={isActive ? "page" : undefined}>
+              <span className="nav-icon">{item.icon}</span>
+              <span>{item.label}</span>
+            </Link>
+          );
+        })}
       </nav>
 
       <div className="sidebar-footer">
