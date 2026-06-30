@@ -56,7 +56,7 @@ export default async function AdminHomePage() {
   );
 
   const attendanceRate = activeEmployees > 0 ? Math.round((todaySummary.total_records / activeEmployees) * 100) : 0;
-  const todayFormatted = new Date().toLocaleDateString("ar-IQ-u-nu-latn", {
+  const todayFormatted = new Date().toLocaleDateString("ar-EG-u-nu-latn", {
     weekday: "long", year: "numeric", month: "long", day: "numeric", timeZone: settings.timezone,
   });
   const pendingAbsenceLabel = absentToday > 0 ? `${num(absentToday)} يحتاجون حسم` : "اليوم محسوم";

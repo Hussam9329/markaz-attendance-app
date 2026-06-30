@@ -24,7 +24,7 @@ export function formatPercent(value: number | string | null | undefined) {
 
 export function formatArabicDate(date: Date | string, options: Intl.DateTimeFormatOptions = {}) {
   const dateValue = typeof date === "string" ? new Date(date) : date;
-  return toEnglishDigits(dateValue.toLocaleDateString("ar-IQ", options));
+  return toEnglishDigits(dateValue.toLocaleDateString("ar-EG-u-nu-latn", options));
 }
 
 export function formatMonthLabel(month: string) {

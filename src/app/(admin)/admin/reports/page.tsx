@@ -55,8 +55,8 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
   const dayAttendance = daySummary.present_count + daySummary.late_count;
   const dayTotal = daySummary.total_records + absentToday;
   const dayRate = dayTotal > 0 ? Math.round((dayAttendance / dayTotal) * 100) : 0;
-  const monthLabel = new Date(month + "-01").toLocaleDateString("ar-IQ-u-nu-latn", { month: "long", year: "numeric" });
-  const dateLabel = new Date(date + "T00:00:00").toLocaleDateString("ar-IQ-u-nu-latn", { weekday: "long", year: "numeric", month: "long", day: "numeric" });
+  const monthLabel = new Date(month + "-01").toLocaleDateString("ar-EG-u-nu-latn", { month: "long", year: "numeric" });
+  const dateLabel = new Date(date + "T00:00:00").toLocaleDateString("ar-EG-u-nu-latn", { weekday: "long", year: "numeric", month: "long", day: "numeric" });
 
   return (
     <div className="stack">

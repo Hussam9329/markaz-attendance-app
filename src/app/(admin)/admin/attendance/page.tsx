@@ -54,7 +54,7 @@ export default async function AttendancePage({ searchParams }: { searchParams: P
   const qrRecords = records.filter((r) => r.source !== "manual");
   const manualRecords = records.filter((r) => r.source === "manual");
 
-  const dateFormatted = new Date(date + "T00:00:00").toLocaleDateString("ar-IQ-u-nu-latn", {
+  const dateFormatted = new Date(date + "T00:00:00").toLocaleDateString("ar-EG-u-nu-latn", {
     weekday: "long", year: "numeric", month: "long", day: "numeric",
   });
 

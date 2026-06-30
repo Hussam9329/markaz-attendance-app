@@ -111,7 +111,7 @@ export default async function EmployeeDetailPage({
   const salaryRows = await getMonthlySalaryReport(month);
   const payroll = salaryRows.find((row) => row.employee_id === id);
   const adjustments = await getPayrollAdjustments(month, id);
-  const monthLabel = new Date(month + "-01").toLocaleDateString("ar-IQ-u-nu-latn", { month: "long", year: "numeric" });
+  const monthLabel = new Date(month + "-01").toLocaleDateString("ar-EG-u-nu-latn", { month: "long", year: "numeric" });
 
   return (
     <div className="stack">

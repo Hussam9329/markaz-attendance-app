@@ -14,7 +14,7 @@ function formatClock(date: Date | null) {
 
 function formatDate(date: Date | null) {
   if (!date) return "جاري المزامنة";
-  return new Intl.DateTimeFormat("ar-IQ-u-nu-latn", {
+  return new Intl.DateTimeFormat("ar-EG-u-nu-latn", {
     weekday: "long",
     day: "numeric",
     month: "long",

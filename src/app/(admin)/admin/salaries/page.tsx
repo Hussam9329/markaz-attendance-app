@@ -43,7 +43,7 @@ export default async function SalariesPage({ searchParams }: { searchParams: Pro
 
   const centerRows = rows.filter((r) => r.employee_type !== "crew");
   const crewRows = rows.filter((r) => r.employee_type === "crew");
-  const monthLabel = new Date(month + "-01").toLocaleDateString("ar-IQ-u-nu-latn", { month: "long", year: "numeric" });
+  const monthLabel = new Date(month + "-01").toLocaleDateString("ar-EG-u-nu-latn", { month: "long", year: "numeric" });
   const topNetRows = [...rows].sort((a, b) => b.net_salary - a.net_salary).slice(0, 6);
 
   return (
