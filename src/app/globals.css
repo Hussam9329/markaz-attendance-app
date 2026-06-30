@@ -4914,3 +4914,126 @@ td {
     display: none !important;
   }
 }
+
+/* Payroll clarity patch: templates, rule warnings, and full equation explanations */
+.payroll-template-box {
+  padding: 16px;
+  border: 1px solid rgba(59, 130, 246, 0.18);
+  border-radius: 22px;
+  background:
+    linear-gradient(135deg, rgba(59, 130, 246, 0.08), rgba(14, 165, 233, 0.04)),
+    rgba(255, 255, 255, 0.78);
+  box-shadow: 0 14px 40px rgba(15, 23, 42, 0.08);
+}
+
+.preset-hints {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.preset-hints span {
+  display: block;
+  padding: 9px 11px;
+  border-radius: 14px;
+  color: var(--text-muted);
+  background: rgba(255, 255, 255, 0.72);
+  border: 1px solid rgba(148, 163, 184, 0.24);
+  font-size: 12px;
+  line-height: 1.7;
+}
+
+.payroll-warning,
+.cell-warning {
+  border: 1px solid rgba(245, 158, 11, 0.34);
+  color: #92400e;
+  background: linear-gradient(135deg, rgba(253, 230, 138, 0.72), rgba(255, 247, 237, 0.92));
+  border-radius: 16px;
+  padding: 10px 12px;
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 1.7;
+  box-shadow: 0 10px 24px rgba(245, 158, 11, 0.12);
+}
+
+.compact-warning {
+  margin: 10px 0 12px;
+}
+
+.cell-warning {
+  display: inline-flex;
+  margin-top: 6px;
+  padding: 4px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+}
+
+.salary-equation-detailed {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.salary-equation-detailed span,
+.salary-equation-detailed strong {
+  display: inline-flex;
+  align-items: center;
+  min-height: 34px;
+  padding: 7px 11px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.78);
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  color: var(--text-main);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.salary-equation-detailed strong {
+  color: #065f46;
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.14), rgba(236, 253, 245, 0.92));
+  border-color: rgba(16, 185, 129, 0.28);
+}
+
+.full-salary-equation {
+  margin-top: 18px;
+  padding: 14px;
+  border-radius: 22px;
+  background: linear-gradient(135deg, rgba(248, 250, 252, 0.92), rgba(239, 246, 255, 0.72));
+  border: 1px solid rgba(148, 163, 184, 0.24);
+}
+
+.bonus-status-box {
+  display: grid;
+  gap: 6px;
+  margin-top: 12px;
+  padding: 12px 14px;
+  border-radius: 18px;
+  border: 1px solid rgba(148, 163, 184, 0.24);
+  background: rgba(248, 250, 252, 0.82);
+}
+
+.bonus-status-box strong {
+  font-size: 13px;
+}
+
+.bonus-status-box span {
+  color: var(--text-muted);
+  font-size: 12px;
+  line-height: 1.7;
+}
+
+.bonus-status-box.is-ok {
+  background: linear-gradient(135deg, rgba(220, 252, 231, 0.78), rgba(236, 253, 245, 0.94));
+  border-color: rgba(16, 185, 129, 0.26);
+}
+
+.bonus-status-box.is-blocked {
+  background: linear-gradient(135deg, rgba(254, 226, 226, 0.72), rgba(255, 241, 242, 0.94));
+  border-color: rgba(244, 63, 94, 0.28);
+}
+
+.bonus-status-box.is-off {
+  background: linear-gradient(135deg, rgba(241, 245, 249, 0.82), rgba(255, 255, 255, 0.92));
+}

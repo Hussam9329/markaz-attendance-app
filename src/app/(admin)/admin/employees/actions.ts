@@ -24,6 +24,11 @@ function positiveInt(formData: FormData, key: string) {
   return Number.isFinite(value) && value >= 0 ? value : 0;
 }
 
+function requiredWorkdays(formData: FormData) {
+  const value = positiveInt(formData, "required_workdays");
+  return value > 0 ? value : 30;
+}
+
 function checkbox(formData: FormData, key: string) {
   return formData.get(key) === "on";
 }
@@ -79,7 +84,7 @@ export async function createEmployee(formData: FormData) {
       ${text(formData, "bank_account")},
       ${money(formData, "monthly_salary")},
       ${money(formData, "allowance")},
-      ${positiveInt(formData, "required_workdays")},
+      ${requiredWorkdays(formData)},
       ${money(formData, "overtime_day_rate")},
       ${money(formData, "bonus_amount")},
       ${checkbox(formData, "daily_salary_mode")},
@@ -113,7 +118,7 @@ export async function updateEmployee(formData: FormData) {
         bank_account = ${text(formData, "bank_account")},
         monthly_salary = ${money(formData, "monthly_salary")},
         allowance = ${money(formData, "allowance")},
-        required_workdays = ${positiveInt(formData, "required_workdays")},
+        required_workdays = ${requiredWorkdays(formData)},
         overtime_day_rate = ${money(formData, "overtime_day_rate")},
         bonus_amount = ${money(formData, "bonus_amount")},
         daily_salary_mode = ${checkbox(formData, "daily_salary_mode")},

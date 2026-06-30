@@ -75,8 +75,13 @@ INSERT INTO app_settings (key, value) VALUES
   ('currency', 'IQD'),
   ('late_after_time', '09:00:00'),
   ('late_deduction_per_minute', '0'),
-  ('workdays_per_month', '26')
+  ('workdays_per_month', '30')
 ON CONFLICT (key) DO NOTHING;
+
+-- Keep older installations aligned with the approved payroll default.
+UPDATE app_settings
+SET value = '30', updated_at = now()
+WHERE key = 'workdays_per_month' AND value = '26';
 
 CREATE INDEX IF NOT EXISTS attendance_records_local_date_idx ON attendance_records(local_date);
 CREATE INDEX IF NOT EXISTS attendance_records_employee_date_idx ON attendance_records(employee_id, local_date);

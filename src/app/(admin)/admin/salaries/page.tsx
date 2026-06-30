@@ -9,6 +9,12 @@ function money(value: number | string) {
   return Number(value || 0).toLocaleString("en-US");
 }
 
+function bonusReasonText(row: Awaited<ReturnType<typeof getMonthlySalaryReport>>[number]) {
+  if (!row.bonus_enabled) return "المكافأة غير مفعلة لهذا الموظف";
+  if (row.bonus_eligible) return "مستحق: لا يوجد غياب أو تأخير أو خصم مانع";
+  return row.bonus_block_reasons.length ? row.bonus_block_reasons.join("، ") : "محجوبة بسبب وجود مانع في الحضور أو القيود";
+}
+
 export default async function SalariesPage({ searchParams }: { searchParams: Promise<{ month?: string }> }) {
   const params = await searchParams;
   const settings = await getSettings();
@@ -118,11 +124,23 @@ export default async function SalariesPage({ searchParams }: { searchParams: Pro
                   </div>
                   <strong className="salary-net">{money(row.net_salary)} <small>{settings.currency}</small></strong>
                 </div>
-                <div className="salary-equation">
+                {row.salary_rule_warning && (
+                  <div className="payroll-warning">⚠️ {row.salary_rule_warning}</div>
+                )}
+                <div className="salary-equation salary-equation-detailed">
                   <span>أساس {money(row.salary_base_calculated)}</span>
+                  <span>+ مخصصات {money(row.allowance)}</span>
                   <span>+ إضافي {money(row.overtime_amount)}</span>
                   <span>+ مكافأة {money(row.automatic_bonus)}</span>
-                  <span>- خصم {money(row.total_deductions)}</span>
+                  <span>+ إضافات/مهام {money(row.manual_additions)}</span>
+                  <span>- غياب {money(row.absence_deductions)}</span>
+                  <span>- تأخير {money(row.late_deductions)}</span>
+                  <span>- قيود {money(row.manual_deductions)}</span>
+                  <strong>= {money(row.net_salary)} {settings.currency}</strong>
+                </div>
+                <div className={`bonus-status-box ${row.bonus_eligible ? "is-ok" : row.bonus_enabled ? "is-blocked" : "is-off"}`}>
+                  <strong>{row.bonus_eligible ? "✅ المكافأة مستحقة" : row.bonus_enabled ? "🚫 المكافأة محجوبة" : "— المكافأة غير مفعلة"}</strong>
+                  <span>{bonusReasonText(row)}</span>
                 </div>
                 <div className="metric-strip salary-mini-strip">
                   <div><span>حضور</span><strong>{row.attendance_days} / {row.required_workdays}</strong></div>
@@ -180,7 +198,7 @@ export default async function SalariesPage({ searchParams }: { searchParams: Pro
                       <td><span className={`type-badge ${row.employee_type === "crew" ? "badge-crew" : "badge-center"}`}>{row.employee_type === "crew" ? "🔧 طاقم" : "🏢 مركز"}</span></td>
                       <td>{row.job_title || "—"}</td>
                       <td>{money(row.monthly_salary)}</td>
-                      <td>{row.required_workdays}</td>
+                      <td>{row.required_workdays}{row.salary_rule_warning ? <div className="cell-warning">⚠️ راجع</div> : null}</td>
                       <td>{row.attendance_days}</td>
                       <td>{row.extra_days}</td>
                       <td>{money(row.overtime_amount)}</td>
@@ -190,7 +208,7 @@ export default async function SalariesPage({ searchParams }: { searchParams: Pro
                       <td className={row.late_deductions > 0 ? "danger-text" : undefined}>{money(row.late_deductions)}</td>
                       <td>{money(row.manual_additions)}</td>
                       <td className={row.manual_deductions > 0 ? "danger-text" : undefined}>{money(row.manual_deductions)}</td>
-                      <td>{row.bonus_eligible ? `✅ ${money(row.automatic_bonus)}` : row.bonus_enabled ? "محجوبة" : "—"}</td>
+                      <td>{row.bonus_eligible ? `✅ ${money(row.automatic_bonus)}` : row.bonus_enabled ? `محجوبة: ${bonusReasonText(row)}` : "—"}</td>
                       <td><strong>{money(row.gross_salary)}</strong></td>
                       <td><strong className="success-text">{money(row.net_salary)} {settings.currency}</strong></td>
                       <td><a href={`/admin/employees/${row.employee_id}?month=${month}`} className="btn btn-ghost btn-sm">📄</a></td>

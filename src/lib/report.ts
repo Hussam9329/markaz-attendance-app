@@ -56,6 +56,8 @@ export type MonthlySalaryRow = {
   bonus_amount: number;
   bonus_eligible: boolean;
   bonus_blocked: boolean;
+  bonus_block_reasons: string[];
+  salary_rule_warning: string;
   total_deductions: number;
   net_salary: number;
   day_value: number;
@@ -117,9 +119,18 @@ function moneyRound(value: number) {
   return Math.round((Number.isFinite(value) ? value : 0) * 100) / 100;
 }
 
-function defaultRequiredDays(jobTitle: string, employeeType: string, configured: number) {
+function defaultRequiredDays(
+  jobTitle: string,
+  employeeType: string,
+  configured: number,
+) {
   const normalized = `${jobTitle} ${employeeType}`.toLowerCase();
-  if (normalized.includes("مصحح") || normalized.includes("تصحيح") || normalized.includes("checker")) return 16;
+  if (
+    normalized.includes("مصحح") ||
+    normalized.includes("تصحيح") ||
+    normalized.includes("checker")
+  )
+    return 16;
   return configured > 0 ? configured : 30;
 }
 
@@ -136,7 +147,10 @@ function mapAdjustment(row: AdjustmentRow): PayrollAdjustment {
   };
 }
 
-export async function getPayrollAdjustments(month: string, employeeId?: string): Promise<PayrollAdjustment[]> {
+export async function getPayrollAdjustments(
+  month: string,
+  employeeId?: string,
+): Promise<PayrollAdjustment[]> {
   const db = getDb();
   const rows = employeeId
     ? await db`
@@ -155,13 +169,17 @@ export async function getPayrollAdjustments(month: string, employeeId?: string):
   return (rows as AdjustmentRow[]).map(mapAdjustment);
 }
 
-export async function getMonthlySalaryReport(month: string): Promise<MonthlySalaryRow[]> {
+export async function getMonthlySalaryReport(
+  month: string,
+): Promise<MonthlySalaryRow[]> {
   const db = getDb();
   const settings = await getSettings();
   const { start, end } = monthBounds(month);
   const configuredWorkdays = positiveInt(settings.workdays_per_month, 30);
   const unexcusedPenalty = toNumber(settings.unexcused_absence_penalty || 10);
-  const afterRequiredPenalty = toNumber(settings.after_required_unexcused_absence_penalty || 10);
+  const afterRequiredPenalty = toNumber(
+    settings.after_required_unexcused_absence_penalty || 10,
+  );
 
   const employees = (await db`
     SELECT
@@ -225,11 +243,26 @@ export async function getMonthlySalaryReport(month: string): Promise<MonthlySala
     const employeeId = String(employee.id);
     const monthlySalary = toNumber(employee.monthly_salary);
     const allowance = toNumber(employee.allowance);
+    const rawRequiredWorkdays = Math.floor(
+      toNumber(employee.required_workdays),
+    );
+    const fallbackRequiredWorkdays = defaultRequiredDays(
+      String(employee.job_title ?? ""),
+      String(employee.employee_type ?? "center"),
+      configuredWorkdays,
+    );
     const requiredWorkdays = positiveInt(
       employee.required_workdays,
-      defaultRequiredDays(String(employee.job_title ?? ""), String(employee.employee_type ?? "center"), configuredWorkdays)
+      fallbackRequiredWorkdays,
     );
-    const dayValue = requiredWorkdays > 0 ? monthlySalary / requiredWorkdays : 0;
+    const salaryRuleWarning =
+      rawRequiredWorkdays <= 0
+        ? `عدد الأيام المطلوبة غير مضبوط؛ استخدم النظام ${fallbackRequiredWorkdays} يوم كقيمة آمنة.`
+        : rawRequiredWorkdays > 31
+          ? "عدد الأيام المطلوبة أكبر من 31 يوم؛ راجع قاعدة الراتب قبل اعتماد الكشف."
+          : "";
+    const dayValue =
+      requiredWorkdays > 0 ? monthlySalary / requiredWorkdays : 0;
     const overtimeDayRate = toNumber(employee.overtime_day_rate) || dayValue;
     const events = eventsByEmployee.get(employeeId) ?? [];
     const adjustments = adjustmentsByEmployee.get(employeeId) ?? [];
@@ -258,7 +291,8 @@ export async function getMonthlySalaryReport(month: string): Promise<MonthlySala
       }
 
       const isAfterRequired = attendedSoFar >= requiredWorkdays;
-      const absenceType = event.absence_type === "excused" ? "excused" : "unexcused";
+      const absenceType =
+        event.absence_type === "excused" ? "excused" : "unexcused";
 
       if (absenceType === "excused") absentExcusedDays += 1;
       else absentUnexcusedDays += 1;
@@ -268,16 +302,22 @@ export async function getMonthlySalaryReport(month: string): Promise<MonthlySala
 
       if (employee.daily_salary_mode) {
         if (absenceType === "unexcused") {
-          absenceDeductions += isAfterRequired ? afterRequiredPenalty : unexcusedPenalty;
+          absenceDeductions += isAfterRequired
+            ? afterRequiredPenalty
+            : unexcusedPenalty;
         }
       } else if (isAfterRequired) {
-        absenceDeductions += absenceType === "unexcused" ? afterRequiredPenalty : 0;
+        absenceDeductions +=
+          absenceType === "unexcused" ? afterRequiredPenalty : 0;
       } else {
-        absenceDeductions += absenceType === "unexcused" ? dayValue + unexcusedPenalty : dayValue;
+        absenceDeductions +=
+          absenceType === "unexcused" ? dayValue + unexcusedPenalty : dayValue;
       }
     }
 
-    const extraDays = employee.overtime_enabled ? Math.max(0, attendanceDays - requiredWorkdays) : 0;
+    const extraDays = employee.overtime_enabled
+      ? Math.max(0, attendanceDays - requiredWorkdays)
+      : 0;
     const overtimeAmount = extraDays * overtimeDayRate;
     const salaryBaseCalculated = employee.daily_salary_mode
       ? Math.min(attendanceDays, requiredWorkdays) * dayValue
@@ -289,7 +329,14 @@ export async function getMonthlySalaryReport(month: string): Promise<MonthlySala
     let blockingDeductions = 0;
 
     for (const adjustment of adjustments) {
-      if (["deduction", "advance", "late_deduction", "absence_deduction"].includes(adjustment.type)) {
+      if (
+        [
+          "deduction",
+          "advance",
+          "late_deduction",
+          "absence_deduction",
+        ].includes(adjustment.type)
+      ) {
         manualDeductions += adjustment.amount;
         if (adjustment.affects_bonus) blockingDeductions += adjustment.amount;
       } else {
@@ -300,12 +347,25 @@ export async function getMonthlySalaryReport(month: string): Promise<MonthlySala
 
     const absentDays = absentExcusedDays + absentUnexcusedDays;
     const bonusAmount = toNumber(employee.bonus_amount);
-    const bonusBlocked = absentDays > 0 || lateDays > 0 || totalLateMinutes > 0 || lateDeductions > 0 || blockingDeductions > 0;
+    const bonusBlockReasons = [
+      absentDays > 0 ? `وجود ${absentDays} يوم غياب` : "",
+      lateDays > 0 || totalLateMinutes > 0 || lateDeductions > 0
+        ? `وجود ${lateDays} حالة تأخير`
+        : "",
+      blockingDeductions > 0 ? "وجود خصم/سلفة يمنع المكافأة" : "",
+    ].filter(Boolean);
+    const bonusBlocked = bonusBlockReasons.length > 0;
     const bonusEligible = Boolean(employee.bonus_enabled) && !bonusBlocked;
     const automaticBonus = bonusEligible ? bonusAmount : 0;
 
-    const grossSalary = salaryBaseCalculated + allowance + overtimeAmount + manualAdditions + automaticBonus;
-    const totalDeductions = absenceDeductions + lateDeductions + manualDeductions;
+    const grossSalary =
+      salaryBaseCalculated +
+      allowance +
+      overtimeAmount +
+      manualAdditions +
+      automaticBonus;
+    const totalDeductions =
+      absenceDeductions + lateDeductions + manualDeductions;
     const netSalary = Math.max(grossSalary - totalDeductions, 0);
 
     return {
@@ -342,6 +402,8 @@ export async function getMonthlySalaryReport(month: string): Promise<MonthlySala
       bonus_amount: moneyRound(bonusAmount),
       bonus_eligible: bonusEligible,
       bonus_blocked: bonusBlocked,
+      bonus_block_reasons: bonusBlockReasons,
+      salary_rule_warning: salaryRuleWarning,
       total_deductions: moneyRound(totalDeductions),
       net_salary: moneyRound(netSalary),
       day_value: moneyRound(dayValue),

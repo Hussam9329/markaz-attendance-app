@@ -6,6 +6,7 @@ import { getMonthlySalaryReport, getPayrollAdjustments } from "@/lib/report";
 import { addPayrollAdjustment, deletePayrollAdjustment, regenerateQr, updateEmployee } from "../actions";
 import QRCode from "qrcode";
 import Link from "next/link";
+import { PayrollPresetSelect } from "@/components/PayrollPresetSelect";
 
 export const dynamic = "force-dynamic";
 
@@ -56,6 +57,13 @@ function statusLabel(record: { status: string; absence_type?: string }) {
   if (record.status === "absent") return record.absence_type === "excused" ? "🚫 غياب بعذر" : "🚫 غياب بدون عذر";
   if (record.status === "late") return "⏰ متأخر";
   return "✅ حاضر";
+}
+
+function bonusReasonText(row: Awaited<ReturnType<typeof getMonthlySalaryReport>>[number] | undefined) {
+  if (!row) return "لا توجد بيانات كافية لهذا الشهر";
+  if (!row.bonus_enabled) return "المكافأة غير مفعلة لهذا الموظف";
+  if (row.bonus_eligible) return "مستحق: لا يوجد غياب أو تأخير أو خصم مانع";
+  return row.bonus_block_reasons.length ? row.bonus_block_reasons.join("، ") : "محجوبة بسبب وجود مانع في الحضور أو القيود";
 }
 
 export default async function EmployeeDetailPage({
@@ -160,6 +168,7 @@ export default async function EmployeeDetailPage({
             <div><span>اليوم الإضافي</span><strong>{money(payroll?.overtime_day_rate ?? Number(emp.overtime_day_rate || 0))}</strong></div>
             <div><span>الدفع</span><strong>{emp.bank_account || "—"}</strong></div>
           </div>
+          {payroll?.salary_rule_warning && <div className="payroll-warning">⚠️ {payroll.salary_rule_warning}</div>}
         </aside>
 
         <div style={{ display: "grid", gap: "20px" }}>
@@ -170,6 +179,7 @@ export default async function EmployeeDetailPage({
             <form action={updateEmployee} className="professional-form-grid compact">
               <input type="hidden" name="id" value={emp.id} />
               <input type="hidden" name="employee_type" value={emp.employee_type} />
+              <PayrollPresetSelect defaultPreset="custom" />
               <div className="form-group"><label className="form-label">كود الموظف</label><input className="form-input" name="employee_code" defaultValue={emp.employee_code} readOnly style={{ background: "#f0f4ff", cursor: "not-allowed" }} /><span className="form-help">كود تلقائي مرتبط بالـ QR ولا يُغيّر يدوياً.</span></div>
               <div className="form-group"><label className="form-label">الاسم</label><input className="form-input" name="name" defaultValue={emp.name} required /><span className="form-help">الاسم المعتمد في الحضور وكشف الراتب.</span></div>
               <div className="form-group"><label className="form-label">القسم</label><input className="form-input" name="department" defaultValue={emp.department} /><span className="form-help">لترتيب الموظفين حسب القسم داخل القوائم.</span></div>
@@ -178,7 +188,7 @@ export default async function EmployeeDetailPage({
               <div className="form-group"><label className="form-label">تاريخ المباشرة</label><input className="form-input" name="hire_date" type="date" defaultValue={emp.hire_date ?? ""} /><span className="form-help">يفيد عند مراجعة من بدأ العمل خلال الشهر.</span></div>
               <div className="form-group"><label className="form-label">الراتب الاسمي ({settings.currency})</label><input className="form-input" name="monthly_salary" type="number" min="0" step="0.01" defaultValue={Number(emp.monthly_salary)} /><span className="form-help">الراتب المتفق عليه قبل الخصومات والإضافات.</span></div>
               <div className="form-group"><label className="form-label">المخصصات الثابتة ({settings.currency})</label><input className="form-input" name="allowance" type="number" min="0" step="0.01" defaultValue={Number(emp.allowance)} /><span className="form-help">مبلغ ثابت يضاف إلى الراتب كل شهر.</span></div>
-              <div className="form-group"><label className="form-label">عدد الأيام المطلوبة</label><input className="form-input" name="required_workdays" type="number" min="0" step="1" defaultValue={Number(emp.required_workdays)} /><span className="form-help">عند إكمال هذا العدد يستحق الراتب الاسمي.</span></div>
+              <div className="form-group"><label className="form-label">عدد الأيام المطلوبة</label><input className="form-input" name="required_workdays" type="number" min="1" max="31" step="1" defaultValue={Number(emp.required_workdays) || 30} required /><span className="form-help">عند إكمال هذا العدد يستحق الراتب الاسمي. إذا كان صفر أو فارغ سيستخدم النظام 30 يوم كقيمة آمنة.</span></div>
               <div className="form-group"><label className="form-label">أجور اليوم الإضافي ({settings.currency})</label><input className="form-input" name="overtime_day_rate" type="number" min="0" step="0.01" defaultValue={Number(emp.overtime_day_rate)} /><span className="form-help">قيمة اليوم الزائد بعد إكمال الأيام المطلوبة.</span></div>
               <div className="form-group"><label className="form-label">مبلغ المكافأة ({settings.currency})</label><input className="form-input" name="bonus_amount" type="number" min="0" step="0.01" defaultValue={Number(emp.bonus_amount)} /><span className="form-help">تُحتسب فقط عند تفعيل المكافأة وعدم وجود موانع.</span></div>
               <div className="form-group"><label className="form-label">خيارات الراتب</label><label className="check-row"><input name="overtime_enabled" type="checkbox" defaultChecked={emp.overtime_enabled} /> احتساب الأيام الإضافية</label><label className="check-row"><input name="bonus_enabled" type="checkbox" defaultChecked={emp.bonus_enabled} /> تفعيل المكافأة التلقائية</label><label className="check-row"><input name="daily_salary_mode" type="checkbox" defaultChecked={emp.daily_salary_mode} /> حساب راتب يومي حسب الحضور</label><span className="form-help">فعّل فقط القواعد المناسبة لعقد هذا الموظف.</span></div>
@@ -190,6 +200,7 @@ export default async function EmployeeDetailPage({
 
           <div id="employee-salary" className="card-elevated">
             <div className="section-heading"><div><h2>💰 تفصيل الراتب — {monthLabel}</h2><p>محرك الراتب الجديد: اسمي + إضافي + مكافآت + مهام − غيابات/تأخير/خصومات.</p></div></div>
+            {payroll?.salary_rule_warning && <div className="payroll-warning">⚠️ {payroll.salary_rule_warning}</div>}
             <div className="stats-grid" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))" }}>
               <article className="stat-card blue"><span className="stat-label">الراتب المحتسب</span><strong className="stat-value small-stat">{money(payroll?.salary_base_calculated ?? emp.monthly_salary)}</strong></article>
               <article className="stat-card green"><span className="stat-label">الحضور / المطلوب</span><strong className="stat-value small-stat">{payroll?.attendance_days ?? 0} / {payroll?.required_workdays ?? 0}</strong></article>
@@ -200,6 +211,21 @@ export default async function EmployeeDetailPage({
               <article className="stat-card"><span className="stat-label">خصم التأخير</span><strong className="stat-value small-stat" style={{ color: "var(--error)" }}>{money(payroll?.late_deductions ?? 0)}</strong></article>
               <article className="stat-card green"><span className="stat-label">المكافأة التلقائية</span><strong className="stat-value small-stat">{money(payroll?.automatic_bonus ?? 0)}</strong></article>
               <article className="stat-card green"><span className="stat-label">صافي الراتب</span><strong className="stat-value small-stat" style={{ color: "var(--success)" }}>{money(payroll?.net_salary ?? 0)}</strong></article>
+            </div>
+            <div className="salary-equation salary-equation-detailed full-salary-equation">
+              <span>الراتب المحتسب {money(payroll?.salary_base_calculated ?? emp.monthly_salary)}</span>
+              <span>+ المخصصات {money(payroll?.allowance ?? emp.allowance)}</span>
+              <span>+ الإضافي {money(payroll?.overtime_amount ?? 0)}</span>
+              <span>+ المكافأة التلقائية {money(payroll?.automatic_bonus ?? 0)}</span>
+              <span>+ المهام/الإضافات {money(payroll?.manual_additions ?? 0)}</span>
+              <span>- خصم الغياب {money(payroll?.absence_deductions ?? 0)}</span>
+              <span>- خصم التأخير {money(payroll?.late_deductions ?? 0)}</span>
+              <span>- السلف/الخصومات {money(payroll?.manual_deductions ?? 0)}</span>
+              <strong>= {money(payroll?.net_salary ?? 0)} {settings.currency}</strong>
+            </div>
+            <div className={`bonus-status-box ${payroll?.bonus_eligible ? "is-ok" : payroll?.bonus_enabled ? "is-blocked" : "is-off"}`}>
+              <strong>{payroll?.bonus_eligible ? "✅ المكافأة مستحقة" : payroll?.bonus_enabled ? "🚫 المكافأة محجوبة" : "— المكافأة غير مفعلة"}</strong>
+              <span>{bonusReasonText(payroll)}</span>
             </div>
           </div>
         </div>

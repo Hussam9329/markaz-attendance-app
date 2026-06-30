@@ -5,6 +5,7 @@ import { getMonthlySalaryReport } from "@/lib/report";
 import { currentMonth } from "@/lib/time";
 import QRCode from "qrcode";
 import { FutureHero, FutureMetricGrid } from "@/components/future/FutureDashboard";
+import { PayrollPresetSelect } from "@/components/PayrollPresetSelect";
 
 export const dynamic = "force-dynamic";
 
@@ -42,6 +43,8 @@ type EmployeeWithDetails = Employee & {
   extra_days: number;
   overtime_amount: number;
   automatic_bonus: number;
+  salary_rule_warning: string;
+  bonus_block_reasons: string[];
 };
 
 async function qrDataUrl(token: string) {
@@ -117,6 +120,8 @@ export default async function EmployeesPage() {
           extra_days: report?.extra_days ?? 0,
           overtime_amount: report?.overtime_amount ?? 0,
           automatic_bonus: report?.automatic_bonus ?? 0,
+          salary_rule_warning: report?.salary_rule_warning ?? (Number(emp.required_workdays || 0) <= 0 ? "عدد الأيام المطلوبة غير مضبوط؛ سيتم استخدام 30 يوم كقيمة آمنة." : ""),
+          bonus_block_reasons: report?.bonus_block_reasons ?? [],
         };
       })
     );
@@ -222,6 +227,7 @@ export default async function EmployeesPage() {
             <span className="form-help">يفيد لمعرفة بداية عمل الموظف، خصوصاً عند الحساب اليومي.</span>
           </div>
           <div className="form-section-title">💰 قاعدة الراتب <span>هذه الحقول تدخل مباشرة في معادلة الراتب النهائي.</span></div>
+          <PayrollPresetSelect defaultPreset="full_time" />
           <div className="form-group">
             <label className="form-label">الراتب الأساسي ({settings.currency})</label>
             <input className="form-input" name="monthly_salary" type="number" min="0" step="0.01" defaultValue="0" />
@@ -234,12 +240,12 @@ export default async function EmployeesPage() {
           </div>
           <div className="form-group">
             <label className="form-label">عدد الأيام المطلوبة</label>
-            <input className="form-input" name="required_workdays" type="number" min="0" step="1" defaultValue="16" />
+            <input className="form-input" name="required_workdays" type="number" min="1" max="31" step="1" defaultValue="30" required />
             <span className="form-help">مثال المصححين: 16، الدوام الكامل: 30. عند إكمالها يستحق الراتب الاسمي.</span>
           </div>
           <div className="form-group">
             <label className="form-label">أجور اليوم الإضافي ({settings.currency})</label>
-            <input className="form-input" name="overtime_day_rate" type="number" min="0" step="0.01" defaultValue="25" />
+            <input className="form-input" name="overtime_day_rate" type="number" min="0" step="0.01" defaultValue="0" />
             <span className="form-help">يُحسب فقط عند حضور أيام أكثر من الأيام المطلوبة.</span>
           </div>
           <div className="form-group">
@@ -250,7 +256,7 @@ export default async function EmployeesPage() {
           <div className="form-section-title">⚙️ طريقة الاحتساب <span>اختيارات سريعة تغيّر طريقة الحساب بدون تعديل المعادلة.</span></div>
           <div className="form-group"> 
             <label className="form-label">قواعد الاحتساب</label>
-            <label className="check-row"><input name="overtime_enabled" type="checkbox" defaultChecked /> احتساب الأيام الإضافية</label>
+            <label className="check-row"><input name="overtime_enabled" type="checkbox" /> احتساب الأيام الإضافية</label>
             <label className="check-row"><input name="bonus_enabled" type="checkbox" /> تفعيل المكافأة التلقائية</label>
             <label className="check-row"><input name="daily_salary_mode" type="checkbox" /> حساب راتب يومي حسب الحضور</label>
             <span className="form-help">فعّل اليومي فقط لمن بدأ من نص الشهر أو لا يستحق الراتب القطعي.</span>
@@ -311,6 +317,8 @@ export default async function EmployeesPage() {
                 </div>
               </div>
 
+              {emp.salary_rule_warning && <div className="payroll-warning compact-warning">⚠️ {emp.salary_rule_warning}</div>}
+
               <div className="metric-strip">
                 <div><span>المطلوب</span><strong>{emp.required_workdays_report}</strong></div>
                 <div><span>حضور</span><strong>{emp.attendance_days}</strong></div>
@@ -366,6 +374,7 @@ export default async function EmployeesPage() {
                     <span className="form-help">مفيد عند حساب جزء من الشهر.</span>
                   </div>
                 </div>
+                <PayrollPresetSelect defaultPreset="custom" />
                 <div className="form-row">
                   <div className="form-group">
                     <label className="form-label">الراتب</label>
@@ -381,8 +390,8 @@ export default async function EmployeesPage() {
                 <div className="form-row">
                   <div className="form-group">
                     <label className="form-label">الأيام المطلوبة</label>
-                    <input className="form-input" name="required_workdays" type="number" min="0" step="1" defaultValue={Number(emp.required_workdays)} />
-                    <span className="form-help">بعد إكمالها يستحق الراتب الاسمي.</span>
+                    <input className="form-input" name="required_workdays" type="number" min="1" max="31" step="1" defaultValue={Number(emp.required_workdays) || 30} required />
+                    <span className="form-help">بعد إكمالها يستحق الراتب الاسمي. إذا تركتها فارغة أو صفر سيستخدم النظام 30 يوم.</span>
                   </div>
                   <div className="form-group">
                     <label className="form-label">اليوم الإضافي</label>
