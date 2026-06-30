@@ -1,6 +1,7 @@
 import { getSettings } from "@/lib/settings";
 import { currentMonth } from "@/lib/time";
 import { getMonthlySalaryReport } from "@/lib/report";
+import { FutureHero, FutureMetricGrid } from "@/components/future/FutureDashboard";
 
 export const dynamic = "force-dynamic";
 
@@ -47,22 +48,20 @@ export default async function SalariesPage({ searchParams }: { searchParams: Pro
 
   return (
     <div className="stack payroll-board-page">
-      <section className="operation-hero payroll-hero">
-        <div className="operation-hero-copy">
-          <div className="page-tag">💰 لوحة الرواتب</div>
-          <h1>مراجعة الرواتب بالكارتات أولاً</h1>
-          <p>عرض مريح للشهر {monthLabel}: راجع الصافي والإضافات والخصومات، ثم افتح الجدول الجماعي فقط عند الحاجة.</p>
-          <div className="hero-actions">
-            <a className="btn btn-accent" href={`/api/reports/monthly.csv?month=${month}`}>📥 تنزيل CSV</a>
-            <a className="btn btn-secondary" href="/admin/settings">⚙️ قواعد الخصم</a>
-          </div>
-        </div>
-        <div className="operation-scoreboard">
-          <div><span>صافي الرواتب</span><strong>{money(totals.net)} {settings.currency}</strong></div>
-          <div><span>الخصومات</span><strong className="danger-text">{money(totals.deductions)} {settings.currency}</strong></div>
-          <div><span>عدد الموظفين</span><strong>{rows.length.toLocaleString("en-US")}</strong></div>
-        </div>
-      </section>
+      <FutureHero
+        eyebrow="💰 لوحة الرواتب — React Payroll Board"
+        title="مراجعة الرواتب بالكارتات أولاً"
+        description={<>عرض مريح للشهر {monthLabel}: راجع الصافي والإضافات والخصومات، ثم افتح الجدول الجماعي فقط عند الحاجة.</>}
+        actions={<>
+          <a className="btn btn-accent" href={`/api/reports/monthly.csv?month=${month}`}>📥 تنزيل CSV</a>
+          <a className="btn btn-secondary" href="/admin/settings">⚙️ قواعد الخصم</a>
+        </>}
+        stats={[
+          { label: "صافي الرواتب", value: `${money(totals.net)} ${settings.currency}`, tone: "emerald" },
+          { label: "الخصومات", value: `${money(totals.deductions)} ${settings.currency}`, tone: totals.deductions > 0 ? "rose" : "violet" },
+          { label: "عدد الموظفين", value: rows.length.toLocaleString("en-US"), tone: "cyan" },
+        ]}
+      />
 
       <section className="daily-control-panel payroll-control-panel">
         <article className="control-card date-control-card">
@@ -89,12 +88,14 @@ export default async function SalariesPage({ searchParams }: { searchParams: Pro
         </article>
       </section>
 
-      <section className="stats-grid comfort-stats">
-        <article className="stat-card blue"><div className="stat-icon blue">💵</div><span className="stat-label">الراتب المحتسب</span><strong className="stat-value">{money(totals.base)} {settings.currency}</strong></article>
-        <article className="stat-card green"><div className="stat-icon green">➕</div><span className="stat-label">إضافي + مكافآت + قيود موجبة</span><strong className="stat-value">{money(totals.overtime + totals.bonus + totals.additions + totals.allowance)} {settings.currency}</strong></article>
-        <article className="stat-card"><div className="stat-icon" style={{ background: "#fff5f5", color: "#e53e3e" }}>📉</div><span className="stat-label">إجمالي الخصومات</span><strong className="stat-value danger-text">{money(totals.deductions)} {settings.currency}</strong></article>
-        <article className="stat-card green"><div className="stat-icon green">✅</div><span className="stat-label">صافي الرواتب</span><strong className="stat-value success-text">{money(totals.net)} {settings.currency}</strong></article>
-      </section>
+      <FutureMetricGrid
+        metrics={[
+          { label: "الراتب المحتسب", value: money(totals.base), suffix: settings.currency, icon: "💵", tone: "cyan", progress: totals.gross > 0 ? Math.round((totals.base / totals.gross) * 100) : 0, trend: "أساس كشف الشهر", sparkline: [0, totals.base / 3, totals.base / 2, totals.base] },
+          { label: "إضافي + مكافآت + قيود موجبة", value: money(totals.overtime + totals.bonus + totals.additions + totals.allowance), suffix: settings.currency, icon: "➕", tone: "emerald", progress: totals.gross > 0 ? Math.round(((totals.overtime + totals.bonus + totals.additions + totals.allowance) / totals.gross) * 100) : 0, trend: `${totals.extraDays.toLocaleString("en-US")} أيام إضافية`, sparkline: [0, totals.overtime, totals.bonus, totals.additions + totals.allowance] },
+          { label: "إجمالي الخصومات", value: money(totals.deductions), suffix: settings.currency, icon: "📉", tone: totals.deductions > 0 ? "rose" : "violet", progress: totals.gross > 0 ? Math.round((totals.deductions / totals.gross) * 100) : 0, trend: `${totals.absenceDays.toLocaleString("en-US")} أيام غياب`, sparkline: [0, totals.late, totals.absence, totals.deductions] },
+          { label: "صافي الرواتب", value: money(totals.net), suffix: settings.currency, icon: "✅", tone: "emerald", progress: totals.gross > 0 ? Math.round((totals.net / totals.gross) * 100) : 0, trend: "الرقم النهائي للدفع", sparkline: [0, totals.gross / 3, totals.gross / 2, totals.net] },
+        ]}
+      />
 
       <section className="workflow-board payroll-workflow-board">
         <article className="workflow-lane lane-primary"><div className="lane-kicker">1</div><h2>راجع الكارتات</h2><p>كل موظف يظهر بكارت يلخص الراتب النهائي وأسباب الزيادة والنقصان.</p></article>

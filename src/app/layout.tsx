@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import VisualEffects from "@/components/effects/VisualEffects";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -14,13 +15,16 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
-  themeColor: "#0f172a"
+  themeColor: "#050711"
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="ar" dir="rtl">
-      <body>{children}</body>
+      <body>
+        <VisualEffects />
+        {children}
+      </body>
     </html>
   );
 }

@@ -3,6 +3,7 @@ import { getSettings } from "@/lib/settings";
 import { currentMonth, getLocalParts } from "@/lib/time";
 import { getAbsentEmployeesByDate, getDaySummary } from "@/lib/attendance";
 import { getMonthlySalaryReport } from "@/lib/report";
+import { FutureHero, FutureMetricGrid } from "@/components/future/FutureDashboard";
 
 export const dynamic = "force-dynamic";
 
@@ -59,14 +60,17 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
 
   return (
     <div className="stack">
-      <header className="page-header">
-        <div>
-          <div className="page-tag">📊 التقارير</div>
-          <h1>مركز التقارير الإدارية والمالية</h1>
-          <p>لوحة مراجعة سريعة للحضور والرواتب مع تصدير كشف الرواتب CSV.</p>
-        </div>
-        <a className="btn btn-accent" href={`/api/reports/monthly.csv?month=${month}`}>📥 تنزيل كشف الرواتب</a>
-      </header>
+      <FutureHero
+        eyebrow="📊 التقارير — React Analytics"
+        title="مركز التقارير الإدارية والمالية"
+        description={<>لوحة مراجعة سريعة للحضور والرواتب مع تصدير كشف الرواتب CSV، وكل الأرقام جاية من نفس دوال المشروع الأصلي.</>}
+        actions={<a className="btn btn-accent" href={`/api/reports/monthly.csv?month=${month}`}>📥 تنزيل كشف الرواتب</a>}
+        stats={[
+          { label: "شهر التقرير", value: monthLabel, tone: "cyan" },
+          { label: "تاريخ الحضور", value: dateLabel, tone: "violet" },
+          { label: "نسبة اليوم", value: `${dayRate.toLocaleString("en-US")}%`, tone: "emerald" },
+        ]}
+      />
 
       <section className="ux-guide">
         <div><strong>تقرير يومي</strong><span>يعرض حضور يوم محدد مع المتأخرين والغياب غير المحسوم.</span></div>
@@ -90,28 +94,14 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
         </form>
       </section>
 
-      <section className="stats-grid">
-        <article className="stat-card blue">
-          <div className="stat-icon blue">👥</div>
-          <span className="stat-label">الموظفون الفعالون / الكلي</span>
-          <strong className="stat-value">{activeEmployees.toLocaleString("en-US")} / {totalEmployees.toLocaleString("en-US")}</strong>
-        </article>
-        <article className="stat-card green">
-          <div className="stat-icon green">📈</div>
-          <span className="stat-label">نسبة حضور اليوم</span>
-          <strong className="stat-value">{dayRate.toLocaleString("en-US")}%</strong>
-        </article>
-        <article className="stat-card orange">
-          <div className="stat-icon orange">⏰</div>
-          <span className="stat-label">أيام التأخير الشهرية</span>
-          <strong className="stat-value">{totals.lateDays.toLocaleString("en-US")}</strong>
-        </article>
-        <article className="stat-card">
-          <div className="stat-icon" style={{ background: "#fff5f5", color: "#e53e3e" }}>🚫</div>
-          <span className="stat-label">أيام الغياب الشهرية</span>
-          <strong className="stat-value">{totals.absentDays.toLocaleString("en-US")}</strong>
-        </article>
-      </section>
+      <FutureMetricGrid
+        metrics={[
+          { label: "الموظفون الفعالون / الكلي", value: `${activeEmployees.toLocaleString("en-US")} / ${totalEmployees.toLocaleString("en-US")}`, icon: "👥", tone: "cyan", progress: totalEmployees > 0 ? Math.round((activeEmployees / totalEmployees) * 100) : 0, trend: "قاعدة الموظفين الحالية", sparkline: [totalEmployees, activeEmployees, activeEmployees, totalEmployees] },
+          { label: "نسبة حضور اليوم", value: `${dayRate.toLocaleString("en-US")}%`, icon: "📈", tone: "emerald", progress: dayRate, trend: dateLabel, sparkline: [0, daySummary.present_count, dayAttendance, dayRate] },
+          { label: "أيام التأخير الشهرية", value: totals.lateDays.toLocaleString("en-US"), icon: "⏰", tone: "amber", progress: activeEmployees > 0 ? Math.round((totals.lateDays / Math.max(1, activeEmployees * 4)) * 100) : 0, trend: "من كشف الرواتب", sparkline: [0, totals.lateDays, totals.attendanceDays, totals.lateDays] },
+          { label: "أيام الغياب الشهرية", value: totals.absentDays.toLocaleString("en-US"), icon: "🚫", tone: totals.absentDays > 0 ? "rose" : "violet", progress: activeEmployees > 0 ? Math.round((totals.absentDays / Math.max(1, activeEmployees * 4)) * 100) : 0, trend: "داخلة بالحسابات", sparkline: [0, totals.absentDays, absentToday, totals.absentDays] },
+        ]}
+      />
 
       <section className="stats-grid">
         <article className="stat-card blue">

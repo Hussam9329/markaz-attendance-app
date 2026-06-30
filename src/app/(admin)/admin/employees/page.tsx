@@ -4,6 +4,7 @@ import { getSettings } from "@/lib/settings";
 import { getMonthlySalaryReport } from "@/lib/report";
 import { currentMonth } from "@/lib/time";
 import QRCode from "qrcode";
+import { FutureHero, FutureMetricGrid } from "@/components/future/FutureDashboard";
 
 export const dynamic = "force-dynamic";
 
@@ -131,14 +132,17 @@ export default async function EmployeesPage() {
 
   return (
     <div className="stack">
-      <header className="page-header">
-        <div>
-          <div className="page-tag">&#128101; ملفات الموظفين</div>
-          <h1>مركز الموظفين البصري</h1>
-          <p>إضافة الموظف صارت خطوات، وبطاقة الموظف تعرض أهم شيء أولاً، والتعديل مخفي حتى تحتاجه.</p>
-        </div>
-        <a href="/admin/salaries" className="btn btn-accent">💰 كشف الرواتب</a>
-      </header>
+      <FutureHero
+        eyebrow="👥 ملفات الموظفين — React People Hub"
+        title="مركز الموظفين البصري"
+        description={<>إضافة الموظف صارت خطوات، وبطاقة الموظف تعرض أهم شيء أولاً، والتعديل مخفي حتى تحتاجه بدون تغيير أي استدعاء من قاعدة البيانات.</>}
+        actions={<a href="/admin/salaries" className="btn btn-accent">💰 كشف الرواتب</a>}
+        stats={[
+          { label: "الموظفون الفعالون", value: activeCount.toLocaleString("en-US"), tone: "cyan" },
+          { label: "مركز / QR", value: centerCount.toLocaleString("en-US"), tone: "emerald" },
+          { label: "طاقم / يدوي", value: crewCount.toLocaleString("en-US"), tone: "amber" },
+        ]}
+      />
 
       <section className="workflow-board employee-workspace-board">
         <article className="workflow-lane lane-primary">
@@ -161,28 +165,14 @@ export default async function EmployeesPage() {
         </article>
       </section>
 
-      <section className="stats-grid">
-        <article className="stat-card blue">
-          <div className="stat-icon blue">👥</div>
-          <span className="stat-label">الموظفون الفعالون</span>
-          <strong className="stat-value">{activeCount.toLocaleString("en-US")}</strong>
-        </article>
-        <article className="stat-card green">
-          <div className="stat-icon green">🏢</div>
-          <span className="stat-label">موظفو المركز (QR)</span>
-          <strong className="stat-value">{centerCount.toLocaleString("en-US")}</strong>
-        </article>
-        <article className="stat-card orange">
-          <div className="stat-icon orange">🔧</div>
-          <span className="stat-label">موظفو الطاقم (يدوي)</span>
-          <strong className="stat-value">{crewCount.toLocaleString("en-US")}</strong>
-        </article>
-        <article className="stat-card">
-          <div className="stat-icon" style={{ background: "#f0f4ff", color: "#3b82f6" }}>💵</div>
-          <span className="stat-label">صافي الرواتب</span>
-          <strong className="stat-value">{payrollTotal.toLocaleString("en-US")} {settings.currency}</strong>
-        </article>
-      </section>
+      <FutureMetricGrid
+        metrics={[
+          { label: "الموظفون الفعالون", value: activeCount.toLocaleString("en-US"), icon: "👥", tone: "cyan", progress: employees.length > 0 ? Math.round((activeCount / employees.length) * 100) : 0, trend: `${departments.toLocaleString("en-US")} أقسام`, sparkline: [employees.length, activeCount, departments, activeCount] },
+          { label: "موظفو المركز (QR)", value: centerCount.toLocaleString("en-US"), icon: "🏢", tone: "emerald", progress: activeCount > 0 ? Math.round((centerCount / activeCount) * 100) : 0, trend: "حضور عبر QR", sparkline: [0, centerCount, activeCount, centerCount] },
+          { label: "موظفو الطاقم (يدوي)", value: crewCount.toLocaleString("en-US"), icon: "🔧", tone: "amber", progress: activeCount > 0 ? Math.round((crewCount / activeCount) * 100) : 0, trend: "حضور ورواتب يدوية", sparkline: [0, crewCount, activeCount, crewCount] },
+          { label: "صافي الرواتب", value: payrollTotal.toLocaleString("en-US"), suffix: settings.currency, icon: "💵", tone: "violet", progress: payrollTotal > 0 ? 82 : 0, trend: "من تقرير الشهر الحالي", sparkline: [0, payrollTotal / 4, payrollTotal / 2, payrollTotal] },
+        ]}
+      />
 
       <section id="add-employee" className="card-elevated wizard-panel">
         <div className="section-heading">

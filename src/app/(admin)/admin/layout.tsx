@@ -1,4 +1,5 @@
 import AdminNav from "@/components/AdminNav";
+import AdminTopbar from "@/components/AdminTopbar";
 import { requireAdmin } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
@@ -8,7 +9,10 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   return (
     <main className="admin-shell">
       <AdminNav />
-      <section className="admin-content">{children}</section>
+      <div className="admin-main-panel">
+        <AdminTopbar />
+        <section className="admin-content">{children}</section>
+      </div>
     </main>
   );
 }

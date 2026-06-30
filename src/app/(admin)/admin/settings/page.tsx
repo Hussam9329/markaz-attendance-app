@@ -1,5 +1,6 @@
 import { getSettings } from "@/lib/settings";
 import { updateSettings } from "./actions";
+import { FutureHero } from "@/components/future/FutureDashboard";
 
 export const dynamic = "force-dynamic";
 
@@ -8,13 +9,16 @@ export default async function SettingsPage() {
 
   return (
     <div className="stack">
-      <header className="page-header">
-        <div>
-          <div className="page-tag">&#9881; الإعدادات</div>
-          <h1>إعدادات المركز وقواعد الرواتب</h1>
-          <p>تحديد قواعد التأخير، أيام العمل المرجعية، وعقوبات الغياب المعتمدة في محرك الرواتب الجديد.</p>
-        </div>
-      </header>
+      <FutureHero
+        eyebrow="⚙️ الإعدادات — React Rules Console"
+        title="إعدادات المركز وقواعد الرواتب"
+        description={<>تحديد قواعد التأخير، أيام العمل المرجعية، وعقوبات الغياب المعتمدة في محرك الرواتب الجديد.</>}
+        stats={[
+          { label: "المركز", value: settings.center_name, tone: "cyan" },
+          { label: "المنطقة", value: settings.timezone, tone: "violet" },
+          { label: "العملة", value: settings.currency, tone: "emerald" },
+        ]}
+      />
 
       <section className="ux-guide">
         <div><strong>وقت التأخير</strong><span>أي بصمة بعد هذا الوقت تُسجل كمتأخر وتظهر في الراتب.</span></div>

@@ -3,6 +3,7 @@ import { getSettings } from "@/lib/settings";
 import { currentMonth, getLocalParts } from "@/lib/time";
 import { getAbsentEmployeesByDate, getDaySummary, getRecentAttendance } from "@/lib/attendance";
 import { getMonthlySalaryReport } from "@/lib/report";
+import { FutureHero, FutureMetricGrid, FutureTransferNotice, FutureWeeklyChart } from "@/components/future/FutureDashboard";
 
 export const dynamic = "force-dynamic";
 
@@ -59,26 +60,35 @@ export default async function AdminHomePage() {
     weekday: "long", year: "numeric", month: "long", day: "numeric", timeZone: settings.timezone,
   });
   const pendingAbsenceLabel = absentToday > 0 ? `${num(absentToday)} يحتاجون حسم` : "اليوم محسوم";
+  const weeklyMap = new Map<string, { label: string; present: number; late: number; absent: number }>();
+  for (const record of recentRecords) {
+    const label = record.local_date;
+    const current = weeklyMap.get(label) ?? { label, present: 0, late: 0, absent: 0 };
+    if (record.status === "late") current.late += 1;
+    else if (record.status === "absent") current.absent += 1;
+    else current.present += 1;
+    weeklyMap.set(label, current);
+  }
+  const weeklyPoints = Array.from(weeklyMap.values()).slice(-7);
+  const chartPoints = weeklyPoints.length > 0 ? weeklyPoints : [{ label: "اليوم", present: todaySummary.present_count, late: todaySummary.late_count, absent: absentToday }];
 
   return (
     <div className="stack command-shell">
-      <section className="operation-hero">
-        <div className="operation-hero-copy">
-          <div className="page-tag">◆ مركز العمليات اليومي</div>
-          <h1>إدارة اليوم من شاشة واحدة</h1>
-          <p>{settings.center_name} — {todayFormatted}. ابدأ بالحضور، احسم الغياب، ثم راجع أثر اليوم على الرواتب.</p>
-          <div className="hero-actions">
-            <a className="btn btn-primary" href="/admin/attendance">بدء حضور اليوم</a>
-            <a className="btn btn-accent" href="/admin/salaries">مراجعة الرواتب</a>
-            <a className="btn btn-secondary" href="/admin/employees">ملفات الموظفين</a>
-          </div>
-        </div>
-        <div className="operation-scoreboard">
-          <div><span>حضور اليوم</span><strong>{num(todaySummary.total_records)} / {num(activeEmployees)}</strong></div>
-          <div><span>نسبة الإنجاز</span><strong>{num(attendanceRate)}%</strong></div>
-          <div><span>غياب غير محسوم</span><strong>{pendingAbsenceLabel}</strong></div>
-        </div>
-      </section>
+      <FutureHero
+        eyebrow="◆ مركز العمليات اليومي — React Future Console"
+        title="إدارة اليوم من شاشة واحدة"
+        description={<> {settings.center_name} — {todayFormatted}. ابدأ بالحضور، احسم الغياب، ثم راجع أثر اليوم على الرواتب من نفس واجهة React المستقبلية. </>}
+        actions={<>
+          <a className="btn btn-primary" href="/admin/attendance">بدء حضور اليوم</a>
+          <a className="btn btn-accent" href="/admin/salaries">مراجعة الرواتب</a>
+          <a className="btn btn-secondary" href="/admin/employees">ملفات الموظفين</a>
+        </>}
+        stats={[
+          { label: "حضور اليوم", value: `${num(todaySummary.total_records)} / ${num(activeEmployees)}`, tone: "cyan" },
+          { label: "نسبة الإنجاز", value: `${num(attendanceRate)}%`, tone: "emerald" },
+          { label: "غياب غير محسوم", value: pendingAbsenceLabel, tone: absentToday > 0 ? "rose" : "violet" },
+        ]}
+      />
 
       <section className="workflow-board">
         <article className="workflow-lane lane-primary">
@@ -112,28 +122,17 @@ export default async function AdminHomePage() {
         </article>
       </section>
 
-      <section className="stats-grid comfort-stats">
-        <article className="stat-card blue">
-          <div className="stat-icon blue">👥</div>
-          <span className="stat-label">الموظفون الفعالون / الكلي</span>
-          <strong className="stat-value">{num(activeEmployees)} / {num(totalEmployees)}</strong>
-        </article>
-        <article className="stat-card green">
-          <div className="stat-icon green">📈</div>
-          <span className="stat-label">نسبة حضور اليوم</span>
-          <strong className="stat-value">{num(attendanceRate)}%</strong>
-        </article>
-        <article className="stat-card orange">
-          <div className="stat-icon orange">⏰</div>
-          <span className="stat-label">متأخرون اليوم</span>
-          <strong className="stat-value">{num(todaySummary.late_count)}</strong>
-        </article>
-        <article className="stat-card">
-          <div className="stat-icon" style={{ background: "#fff5f5", color: "#e53e3e" }}>🚫</div>
-          <span className="stat-label">غائبون غير محسومين</span>
-          <strong className="stat-value">{num(absentToday)}</strong>
-        </article>
-      </section>
+      <FutureMetricGrid
+        metrics={[
+          { label: "الموظفون الفعالون / الكلي", value: `${num(activeEmployees)} / ${num(totalEmployees)}`, icon: "👥", tone: "cyan", progress: totalEmployees > 0 ? Math.round((activeEmployees / totalEmployees) * 100) : 0, trend: `${departments.toLocaleString("en-US")} أقسام`, sparkline: [totalEmployees, activeEmployees, activeEmployees + departments, activeEmployees] },
+          { label: "نسبة حضور اليوم", value: `${num(attendanceRate)}%`, icon: "📈", tone: "emerald", progress: attendanceRate, trend: "مرتبطة مباشرة بسجلات اليوم", sparkline: [12, 22, 38, 46, attendanceRate] },
+          { label: "متأخرون اليوم", value: num(todaySummary.late_count), icon: "⏰", tone: "amber", progress: activeEmployees > 0 ? Math.round((todaySummary.late_count / activeEmployees) * 100) : 0, trend: `${num(todaySummary.total_late_minutes)} دقيقة`, sparkline: [0, todaySummary.late_count, todaySummary.total_late_minutes, todaySummary.late_count] },
+          { label: "غائبون غير محسومين", value: num(absentToday), icon: "🚫", tone: absentToday > 0 ? "rose" : "violet", progress: activeEmployees > 0 ? Math.round((absentToday / activeEmployees) * 100) : 0, trend: absentToday > 0 ? "يحتاجون قرار" : "كلشي محسوم", sparkline: [absentToday, absentToday, absentToday + todaySummary.late_count, absentToday] },
+        ]}
+      />
+
+      <FutureWeeklyChart points={chartPoints} />
+      <FutureTransferNotice />
 
       <section className="dashboard-split">
         <article className="card-elevated calm-panel">

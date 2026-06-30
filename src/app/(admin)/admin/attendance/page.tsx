@@ -2,6 +2,7 @@ import { getSettings } from "@/lib/settings";
 import { getLocalParts } from "@/lib/time";
 import { getAbsentEmployeesByDate, getActiveEmployees, getAttendanceByDate, getDaySummary } from "@/lib/attendance";
 import { addManualAttendance, deleteAttendanceRecord } from "../employees/actions";
+import { FutureHero, FutureMetricGrid } from "@/components/future/FutureDashboard";
 
 export const dynamic = "force-dynamic";
 
@@ -59,22 +60,20 @@ export default async function AttendancePage({ searchParams }: { searchParams: P
 
   return (
     <div className="stack attendance-cockpit">
-      <section className="operation-hero attendance-hero">
-        <div className="operation-hero-copy">
-          <div className="page-tag">📋 لوحة حضور اليوم</div>
-          <h1>الحضور والغياب بطريقة عمليات</h1>
-          <p>{dateFormatted} — كل شخص بلا بصمة يظهر كحالة تحتاج قرار، وبعد القرار يدخل مباشرة في الراتب.</p>
-          <div className="hero-actions">
-            <a className="btn btn-accent" href="/" target="_blank">📱 ماسح QR</a>
-            {date !== today && <a href="/admin/attendance" className="btn btn-secondary">الرجوع لليوم</a>}
-          </div>
-        </div>
-        <div className="operation-scoreboard">
-          <div><span>نسبة الحضور</span><strong>{attendanceRate.toLocaleString("en-US")}%</strong></div>
-          <div><span>الحاضر + المتأخر</span><strong>{actualAttendance.toLocaleString("en-US")}</strong></div>
-          <div><span>غير محسوم</span><strong>{absentEmployees.length.toLocaleString("en-US")}</strong></div>
-        </div>
-      </section>
+      <FutureHero
+        eyebrow="📋 لوحة حضور اليوم — React Attendance Cockpit"
+        title="الحضور والغياب بطريقة عمليات"
+        description={<>{dateFormatted} — كل شخص بلا بصمة يظهر كحالة تحتاج قرار، وبعد القرار يدخل مباشرة في الراتب.</>}
+        actions={<>
+          <a className="btn btn-accent" href="/" target="_blank">📱 ماسح QR</a>
+          {date !== today && <a href="/admin/attendance" className="btn btn-secondary">الرجوع لليوم</a>}
+        </>}
+        stats={[
+          { label: "نسبة الحضور", value: `${attendanceRate.toLocaleString("en-US")}%`, tone: "emerald" },
+          { label: "الحاضر + المتأخر", value: actualAttendance.toLocaleString("en-US"), tone: "cyan" },
+          { label: "غير محسوم", value: absentEmployees.length.toLocaleString("en-US"), tone: absentEmployees.length > 0 ? "rose" : "violet" },
+        ]}
+      />
 
       <section className="daily-control-panel">
         <article className="control-card date-control-card">
@@ -102,12 +101,14 @@ export default async function AttendancePage({ searchParams }: { searchParams: P
         </article>
       </section>
 
-      <section className="stats-grid comfort-stats">
-        <article className="stat-card green"><div className="stat-icon green">✅</div><span className="stat-label">حضور ضمن الوقت</span><strong className="stat-value">{summary.present_count.toLocaleString("en-US")}</strong></article>
-        <article className="stat-card orange"><div className="stat-icon orange">⏰</div><span className="stat-label">متأخرون</span><strong className="stat-value">{summary.late_count.toLocaleString("en-US")}</strong></article>
-        <article className="stat-card"><div className="stat-icon" style={{ background: "#fff5f5", color: "#e53e3e" }}>🚫</div><span className="stat-label">غياب مسجل / غير محسوم</span><strong className="stat-value">{summary.absent_count.toLocaleString("en-US")} / {absentEmployees.length.toLocaleString("en-US")}</strong></article>
-        <article className="stat-card blue"><div className="stat-icon blue">💵</div><span className="stat-label">خصومات التأخير</span><strong className="stat-value small-stat">{money(summary.total_deductions)} {settings.currency}</strong></article>
-      </section>
+      <FutureMetricGrid
+        metrics={[
+          { label: "حضور ضمن الوقت", value: summary.present_count.toLocaleString("en-US"), icon: "✅", tone: "emerald", progress: activeEmployees > 0 ? Math.round((summary.present_count / activeEmployees) * 100) : 0, trend: "سجلات مؤكدة", sparkline: [0, summary.present_count, actualAttendance, summary.present_count] },
+          { label: "متأخرون", value: summary.late_count.toLocaleString("en-US"), icon: "⏰", tone: "amber", progress: activeEmployees > 0 ? Math.round((summary.late_count / activeEmployees) * 100) : 0, trend: `${summary.total_late_minutes.toLocaleString("en-US")} دقيقة`, sparkline: [0, summary.late_count, summary.total_late_minutes, summary.late_count] },
+          { label: "غياب مسجل / غير محسوم", value: `${summary.absent_count.toLocaleString("en-US")} / ${absentEmployees.length.toLocaleString("en-US")}`, icon: "🚫", tone: absentEmployees.length > 0 ? "rose" : "violet", progress: activeEmployees > 0 ? Math.round((absentEmployees.length / activeEmployees) * 100) : 0, trend: "مرتبط بقرار الراتب", sparkline: [summary.absent_count, absentEmployees.length, summary.absent_count + absentEmployees.length, absentEmployees.length] },
+          { label: "خصومات التأخير", value: money(summary.total_deductions), suffix: settings.currency, icon: "💵", tone: "cyan", progress: summary.total_deductions > 0 ? 70 : 0, trend: "محسوبة من إعدادات النظام", sparkline: [0, Number(summary.total_deductions || 0), summary.late_count, Number(summary.total_deductions || 0)] },
+        ]}
+      />
 
       <section className="card-elevated calm-panel">
         <div className="section-heading">
