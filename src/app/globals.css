@@ -2960,7 +2960,7 @@ body::after {
 /* Future cursor */
 @media (pointer: fine) {
   body.lux-cursor-active,
-  body.lux-cursor-active * { cursor: none !important; }
+  body.lux-cursor-active * { cursor: auto !important; }
 }
 
 .lux-cursor-dot,
@@ -4178,4 +4178,657 @@ td strong, td a { color: #fff; }
   .future-section-heading { flex-direction: column; }
   .future-chart-bars { grid-template-columns: repeat(7, 68px); }
   .future-realtime-clock { display: none; }
+}
+
+/* ═══════════════════════════════════════════
+   V7 CORRECTION PATCH — mouse visual only + calmer typography + adaptive layout
+   ═══════════════════════════════════════════ */
+html {
+  scroll-behavior: auto !important;
+}
+
+body {
+  font-size: 14px;
+  line-height: 1.58;
+}
+
+/* Custom cursor is only a decorative layer. It never hides the native cursor, never catches clicks, and never controls scrolling. */
+body.lux-cursor-active,
+body.lux-cursor-active * {
+  cursor: auto !important;
+}
+body.lux-cursor-visual .lux-cursor-dot,
+body.lux-cursor-visual .lux-cursor-ring {
+  opacity: 1;
+}
+.lux-cursor-dot,
+.lux-cursor-ring {
+  pointer-events: none !important;
+  user-select: none !important;
+  mix-blend-mode: normal !important;
+}
+.lux-cursor-dot {
+  width: 6px !important;
+  height: 6px !important;
+  background: rgba(165, 243, 252, 0.82) !important;
+  box-shadow: 0 0 14px rgba(103, 232, 249, 0.66) !important;
+}
+.lux-cursor-ring {
+  width: 36px !important;
+  height: 36px !important;
+  border: 1px solid rgba(165, 243, 252, 0.28) !important;
+  background: transparent !important;
+  box-shadow: 0 0 18px rgba(34, 211, 238, 0.14) !important;
+  backdrop-filter: none !important;
+}
+.lux-cursor-ring.is-hovering {
+  scale: 1.25 !important;
+  opacity: .7 !important;
+  mix-blend-mode: normal !important;
+  background: rgba(34, 211, 238, 0.055) !important;
+  border-color: rgba(165, 243, 252, 0.45) !important;
+}
+body.lux-magnetic-ready a,
+body.lux-magnetic-ready button,
+body.lux-magnetic-ready summary,
+body.lux-magnetic-ready [data-magnetic] {
+  translate: 0 0 !important;
+  will-change: auto !important;
+}
+
+/* Calmer, more professional scale */
+.stack {
+  gap: clamp(14px, 1.7vw, 22px) !important;
+}
+.admin-shell {
+  grid-template-columns: clamp(236px, 19vw, 272px) minmax(0, 1fr) !important;
+}
+.admin-content {
+  padding: clamp(14px, 2vw, 26px) !important;
+}
+.admin-sidebar {
+  margin: 12px 12px 12px 0 !important;
+  height: calc(100vh - 24px) !important;
+  border-radius: 24px !important;
+}
+.sidebar-header {
+  padding: 20px 18px 14px !important;
+}
+.sidebar-header h2 {
+  font-size: 15px !important;
+  line-height: 1.35 !important;
+}
+.sidebar-header .tag,
+.topbar-kicker,
+.future-eyebrow,
+.future-eyebrow.small,
+.stat-label,
+th,
+.form-help,
+.form-hint,
+.mini-muted,
+.section-heading p,
+.future-progress-row span,
+.future-chart-legend,
+.future-chart-day strong {
+  font-size: 11px !important;
+}
+.sidebar-nav {
+  padding: 12px !important;
+  gap: 6px !important;
+}
+.sidebar-nav a,
+.sidebar-nav .nav-link {
+  min-height: 42px !important;
+  padding: 9px 11px !important;
+  border-radius: 14px !important;
+  font-size: 13px !important;
+}
+.nav-icon {
+  width: 25px !important;
+  height: 25px !important;
+  font-size: 14px !important;
+  border-radius: 10px !important;
+}
+.sidebar-footer {
+  padding: 12px !important;
+}
+.sidebar-footer .btn,
+.sidebar-footer button {
+  min-height: 40px !important;
+  padding: 8px 10px !important;
+  font-size: 12px !important;
+  border-radius: 14px !important;
+}
+
+.admin-topbar {
+  top: 12px !important;
+  margin: 12px 12px 0 12px !important;
+  padding: 10px 12px !important;
+  border-radius: 20px !important;
+  grid-template-columns: minmax(150px, auto) minmax(220px, 1fr) auto auto !important;
+  gap: 10px !important;
+}
+.topbar-page-meta strong {
+  font-size: 15px !important;
+}
+.topbar-search {
+  min-height: 40px !important;
+  border-radius: 14px !important;
+  padding: 0 11px !important;
+}
+.topbar-search span {
+  font-size: 17px !important;
+}
+.topbar-search input {
+  font-size: 13px !important;
+}
+.topbar-status-pill,
+.future-realtime-clock {
+  min-height: 40px !important;
+  border-radius: 14px !important;
+  padding: 8px 10px !important;
+}
+.future-realtime-clock span {
+  font-size: 15px !important;
+  letter-spacing: .08em !important;
+}
+.future-realtime-clock small {
+  font-size: 10px !important;
+}
+
+.btn,
+button.btn,
+a.btn {
+  min-height: 40px !important;
+  padding: 9px 15px !important;
+  border-radius: 13px !important;
+  font-size: 13px !important;
+  gap: 7px !important;
+}
+.btn-sm {
+  min-height: 34px !important;
+  padding: 7px 11px !important;
+  font-size: 12px !important;
+}
+.btn-lg {
+  min-height: 46px !important;
+  padding: 11px 18px !important;
+  font-size: 14px !important;
+}
+
+.card,
+.card-elevated,
+.stat-card,
+.employee-card,
+.workflow-lane,
+.control-card,
+.quick-command,
+.salary-review-card,
+.activity-card,
+.absence-decision-card,
+.rank-item,
+.step-card,
+.rule-card,
+.ux-guide > div,
+.profile-side-card,
+.future-chart-panel,
+.future-transfer-notice {
+  border-radius: 20px !important;
+  padding: clamp(14px, 1.7vw, 20px) !important;
+}
+.card:hover,
+.card-elevated:hover,
+.employee-card:hover,
+.salary-review-card:hover,
+.activity-card:hover,
+.absence-decision-card:hover,
+.stat-card:hover,
+.future-metric-card:hover {
+  transform: translateY(-1px) !important;
+}
+.page-header,
+.operation-hero,
+.hero-admin-header,
+.future-react-hero {
+  border-radius: 24px !important;
+  padding: clamp(16px, 2.2vw, 26px) !important;
+}
+.page-header h1,
+.operation-hero-copy h1,
+.login-card h1,
+.scanner-header h1,
+.future-hero-copy h1 {
+  font-size: clamp(21px, 2.5vw, 34px) !important;
+  line-height: 1.18 !important;
+  letter-spacing: -0.025em !important;
+}
+.page-header p,
+.operation-hero-copy p,
+.future-hero-copy p,
+.login-card .subtitle,
+.scanner-header p {
+  font-size: clamp(12px, 1.15vw, 14px) !important;
+  line-height: 1.65 !important;
+}
+.section-heading {
+  margin-bottom: 12px !important;
+}
+.section-heading h2,
+.future-section-heading h2,
+.control-card h2,
+.workflow-lane h2,
+.salary-card-head h2,
+.employee-info h2,
+.profile-side-card h2,
+.empty-state h3 {
+  font-size: clamp(15px, 1.45vw, 20px) !important;
+  line-height: 1.35 !important;
+}
+
+.stat-card {
+  min-height: 118px !important;
+  gap: 8px !important;
+}
+.stat-icon {
+  width: 38px !important;
+  height: 38px !important;
+  font-size: 17px !important;
+}
+.stat-value,
+.big-control-number,
+.salary-net,
+.operation-scoreboard strong,
+.salary-radar strong {
+  font-size: clamp(22px, 2.5vw, 30px) !important;
+  letter-spacing: -0.03em !important;
+}
+.stats-grid,
+.future-metric-grid,
+.workflow-board,
+.dashboard-split,
+.activity-card-grid,
+.absence-decision-grid,
+.employee-grid,
+.professional-employee-grid,
+.steps-grid,
+.ux-guide {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr)) !important;
+  gap: clamp(10px, 1.4vw, 16px) !important;
+}
+.professional-employee-grid,
+.employee-grid {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr)) !important;
+}
+.dashboard-split.records-split {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 360px), 1fr)) !important;
+}
+
+.future-react-hero {
+  grid-template-columns: minmax(0, 1.35fr) minmax(220px, .65fr) !important;
+  gap: clamp(14px, 2vw, 24px) !important;
+}
+.future-hero-copy h1 {
+  margin: 12px 0 8px !important;
+  max-width: 720px !important;
+}
+.future-hero-actions {
+  margin-top: 16px !important;
+  gap: 8px !important;
+}
+.future-hero-stats {
+  gap: 9px !important;
+}
+.future-hero-stat {
+  min-height: 78px !important;
+  border-radius: 18px !important;
+  padding: 12px 14px !important;
+}
+.future-hero-stat strong {
+  font-size: clamp(17px, 2.1vw, 24px) !important;
+}
+.future-metric-card {
+  min-height: 164px !important;
+  border-radius: 22px !important;
+  padding: 15px !important;
+}
+.future-metric-icon {
+  width: 40px !important;
+  height: 40px !important;
+  border-radius: 14px !important;
+  font-size: 20px !important;
+}
+.future-sparkline {
+  width: 96px !important;
+  height: 34px !important;
+}
+.future-metric-body {
+  margin-top: 14px !important;
+}
+.future-metric-body strong {
+  font-size: clamp(21px, 2.6vw, 30px) !important;
+}
+.future-metric-body em {
+  margin-top: 7px !important;
+  font-size: 11px !important;
+}
+.future-progress-row {
+  margin-top: 12px !important;
+}
+.future-progress-track {
+  height: 6px !important;
+}
+.future-chart-bars {
+  min-height: 210px !important;
+  grid-template-columns: repeat(7, minmax(52px, 1fr)) !important;
+  gap: 9px !important;
+}
+.future-bar-group {
+  height: 170px !important;
+  border-radius: 16px !important;
+}
+.future-bar-group span {
+  width: 10px !important;
+}
+
+.form-group {
+  gap: 5px !important;
+}
+.form-label,
+.form-group label,
+label.form-label {
+  font-size: 12px !important;
+}
+.form-input,
+input.form-input,
+select.form-input,
+textarea.form-input {
+  min-height: 40px !important;
+  border-radius: 13px !important;
+  padding: 9px 12px !important;
+  font-size: 13px !important;
+}
+textarea.form-input {
+  min-height: 96px !important;
+}
+.form-help {
+  padding: 7px 9px !important;
+}
+.professional-form-grid,
+.professional-form-grid.compact,
+.add-form,
+.manual-entry-flow,
+.settings-grid,
+.form-row,
+.toolbar-form {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 190px), 1fr)) !important;
+  gap: 10px !important;
+}
+.manual-entry-flow .wide-field,
+.full-span {
+  grid-column: 1 / -1 !important;
+}
+.report-toolbar {
+  align-items: end !important;
+  gap: 12px !important;
+}
+.table-wrap {
+  border-radius: 18px !important;
+  max-width: 100%;
+  -webkit-overflow-scrolling: touch;
+}
+table {
+  min-width: 760px !important;
+  font-size: 12px !important;
+}
+th,
+td {
+  padding: 10px 11px !important;
+}
+
+.employee-card {
+  gap: 12px !important;
+}
+.employee-top {
+  gap: 12px !important;
+}
+.employee-qr {
+  width: 88px !important;
+  height: 88px !important;
+  border-radius: 18px !important;
+}
+.employee-info h2 {
+  font-size: 16px !important;
+}
+.employee-info .job-title,
+.employee-info .salary {
+  font-size: 12px !important;
+}
+.metric-strip {
+  grid-template-columns: repeat(auto-fit, minmax(92px, 1fr)) !important;
+  gap: 7px !important;
+}
+.metric-strip > div,
+.profile-facts > div {
+  padding: 8px !important;
+  border-radius: 14px !important;
+}
+.metric-strip strong,
+.profile-facts strong {
+  font-size: 13px !important;
+}
+.activity-card,
+.absence-decision-card,
+.salary-review-card {
+  gap: 11px !important;
+}
+.activity-main strong,
+.absence-decision-card h3,
+.salary-card-head strong {
+  font-size: 14px !important;
+}
+.activity-meta,
+.micro-metrics,
+.scan-details,
+.btn-row,
+.lane-actions,
+.hero-actions,
+.card-action-rail,
+.profile-command-tabs {
+  gap: 7px !important;
+}
+
+.index-login-page {
+  display: grid !important;
+  place-items: center !important;
+  padding: clamp(18px, 4vw, 34px) !important;
+}
+.index-login-card {
+  width: min(420px, 100%) !important;
+  gap: 16px !important;
+  padding: clamp(20px, 4vw, 30px) !important;
+}
+.login-kicker {
+  display: inline-flex;
+  align-self: center;
+  width: fit-content;
+  padding: 5px 10px;
+  border: 1px solid rgba(103,232,249,0.18);
+  border-radius: 999px;
+  color: #a5f3fc;
+  background: rgba(34,211,238,0.08);
+  font-size: 11px;
+  font-weight: 900;
+}
+.login-copy {
+  display: grid;
+  gap: 7px;
+  text-align: center;
+}
+.login-logo-wrapper,
+.login-logo-img {
+  width: 64px !important;
+  height: 64px !important;
+  border-radius: 18px !important;
+}
+.scanner-card {
+  width: min(760px, 100%) !important;
+  min-height: auto !important;
+  gap: 18px !important;
+  padding: clamp(18px, 3vw, 30px) !important;
+}
+.qr-box {
+  width: min(420px, 100%) !important;
+  border-radius: 20px !important;
+}
+.scan-result {
+  min-height: 88px !important;
+  padding: 14px !important;
+  border-radius: 18px !important;
+}
+
+@media (min-width: 1181px) and (max-width: 1440px) {
+  .future-metric-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+  }
+  .workflow-board {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  }
+}
+
+@media (max-width: 1180px) {
+  .admin-shell {
+    grid-template-columns: 1fr !important;
+  }
+  .admin-sidebar {
+    position: relative !important;
+    top: 0 !important;
+    height: auto !important;
+    margin: 10px !important;
+    border-radius: 20px !important;
+  }
+  .sidebar-header {
+    padding: 14px !important;
+  }
+  .sidebar-nav {
+    display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: nowrap !important;
+    overflow-x: auto !important;
+    padding: 10px !important;
+  }
+  .sidebar-nav a,
+  .sidebar-nav .nav-link {
+    flex: 0 0 auto !important;
+  }
+  .sidebar-nav a:hover,
+  .sidebar-nav .nav-link:hover,
+  .sidebar-nav a.active,
+  .sidebar-nav .nav-link.active {
+    transform: none !important;
+  }
+  .sidebar-footer {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 8px !important;
+  }
+  .admin-topbar {
+    position: sticky !important;
+    top: 0 !important;
+    grid-template-columns: minmax(0, 1fr) auto !important;
+    align-items: stretch !important;
+  }
+  .topbar-search {
+    grid-column: 1 / -1 !important;
+    order: 3 !important;
+  }
+  .future-realtime-clock {
+    display: none !important;
+  }
+  .future-react-hero {
+    grid-template-columns: 1fr !important;
+  }
+  .future-hero-stats {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  }
+}
+
+@media (max-width: 760px) {
+  body {
+    font-size: 13px !important;
+  }
+  .admin-content {
+    padding: 10px !important;
+  }
+  .admin-topbar {
+    margin: 8px !important;
+    grid-template-columns: 1fr !important;
+  }
+  .topbar-status-pill {
+    display: none !important;
+  }
+  .sidebar-footer {
+    grid-template-columns: 1fr !important;
+  }
+  .page-header,
+  .operation-hero,
+  .hero-admin-header,
+  .future-react-hero,
+  .card,
+  .card-elevated,
+  .stat-card,
+  .employee-card,
+  .workflow-lane,
+  .control-card,
+  .salary-review-card,
+  .activity-card,
+  .absence-decision-card,
+  .future-chart-panel {
+    border-radius: 18px !important;
+  }
+  .future-hero-stats,
+  .future-metric-grid,
+  .workflow-board,
+  .dashboard-split,
+  .activity-card-grid,
+  .absence-decision-grid,
+  .employee-grid,
+  .professional-employee-grid,
+  .settings-grid,
+  .form-row,
+  .manual-entry-flow,
+  .professional-form-grid,
+  .professional-form-grid.compact,
+  .toolbar-form {
+    grid-template-columns: 1fr !important;
+  }
+  .future-chart-bars {
+    grid-template-columns: repeat(7, 54px) !important;
+  }
+  .employee-top {
+    align-items: flex-start !important;
+  }
+  .employee-actions,
+  .btn-row,
+  .lane-actions,
+  .hero-actions,
+  .scanner-actions {
+    align-items: stretch !important;
+    flex-direction: column !important;
+  }
+  .btn,
+  button.btn,
+  a.btn {
+    width: 100%;
+  }
+  .table-wrap {
+    margin-inline: -2px;
+  }
+  table {
+    min-width: 680px !important;
+  }
+  .lux-cursor-dot,
+  .lux-cursor-ring {
+    display: none !important;
+  }
 }

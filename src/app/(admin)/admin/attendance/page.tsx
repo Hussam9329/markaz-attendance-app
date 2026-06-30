@@ -65,7 +65,7 @@ export default async function AttendancePage({ searchParams }: { searchParams: P
         title="الحضور والغياب بطريقة عمليات"
         description={<>{dateFormatted} — كل شخص بلا بصمة يظهر كحالة تحتاج قرار، وبعد القرار يدخل مباشرة في الراتب.</>}
         actions={<>
-          <a className="btn btn-accent" href="/" target="_blank">📱 ماسح QR</a>
+          <a className="btn btn-accent" href="/scan" target="_blank">📱 ماسح QR</a>
           {date !== today && <a href="/admin/attendance" className="btn btn-secondary">الرجوع لليوم</a>}
         </>}
         stats={[
@@ -90,7 +90,7 @@ export default async function AttendancePage({ searchParams }: { searchParams: P
           <span className="control-step">QR</span>
           <h2>دخول سريع للمركز</h2>
           <p>افتح شاشة المسح للموظفين الذين يحضرون بالبصمة أو QR.</p>
-          <a className="btn btn-accent" href="/" target="_blank">فتح الماسح</a>
+          <a className="btn btn-accent" href="/scan" target="_blank">فتح الماسح</a>
         </article>
 
         <article className="control-card urgent-control-card">

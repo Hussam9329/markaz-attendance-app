@@ -10,7 +10,7 @@ export async function POST(request: Request) {
   const adminPassword = process.env.ADMIN_PASSWORD || DEFAULT_PASSWORD;
 
   if (password !== adminPassword) {
-    redirect("/admin/login?error=1");
+    redirect("/?error=1");
   }
 
   const cookieStore = await cookies();

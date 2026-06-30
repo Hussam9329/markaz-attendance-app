@@ -9,13 +9,16 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
   const params = await searchParams;
 
   return (
-    <main className="login-page">
-      <form className="login-card" action="/api/admin/login" method="post">
+    <main className="login-page index-login-page">
+      <form className="login-card index-login-card" action="/api/admin/login" method="post">
         <div className="login-logo-wrapper">
-          <Image src="/logo.png" alt="الطاقم TheCrew" width={80} height={80} className="login-logo-img" />
+          <Image src="/logo.png" alt="الطاقم TheCrew" width={80} height={80} className="login-logo-img" priority />
         </div>
-        <h1>الطاقم <span className="logo-en-hero">TheCrew</span></h1>
-        <p className="subtitle">أدخل كلمة مرور الإدارة للوصول إلى لوحة التحكم</p>
+        <div className="login-copy">
+          <span className="login-kicker">TheCrew Admin</span>
+          <h1>تسجيل الدخول</h1>
+          <p className="subtitle">ادخل كلمة مرور الإدارة للوصول إلى لوحة التحكم، الحضور، الرواتب، والتقارير.</p>
+        </div>
         {params.error && <div className="alert error">&#10060; كلمة المرور غير صحيحة</div>}
         <div className="form-group">
           <label className="form-label">كلمة المرور</label>
@@ -28,9 +31,9 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
             autoFocus
             placeholder="أدخل كلمة المرور"
           />
-          <span className="form-help">هذه الكلمة خاصة بالإدارة فقط، وبعد الدخول تظهر لوحة التحكم كاملة.</span>
+          <span className="form-help">الصفحة الرئيسية الآن مخصصة لتسجيل الدخول، وتسجيل الحضور لم يعد يظهر كواجهة أولى.</span>
         </div>
-        <button className="btn btn-primary btn-lg" type="submit" style={{ width: "100%" }}>
+        <button className="btn btn-primary btn-lg" type="submit">
           دخول لوحة الإدارة
         </button>
       </form>

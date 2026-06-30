@@ -2,7 +2,7 @@
 
 import { useEffect, useRef } from "react";
 
-const hoverSelector = "a, button, summary, input, select, textarea, [data-cursor-hover='true'], [data-magnetic]";
+const hoverSelector = "a, button, summary, input, select, textarea, [data-cursor-hover='true']";
 
 export default function CustomCursor() {
   const dotRef = useRef<HTMLDivElement | null>(null);
@@ -20,13 +20,13 @@ export default function CustomCursor() {
     const ringEl = ringRef.current;
     if (!dot || !ringEl) return;
 
-    document.body.classList.add("lux-cursor-active");
+    document.body.classList.add("lux-cursor-visual");
 
     const render = () => {
-      ring.current.x += (pointer.current.x - ring.current.x) * 0.18;
-      ring.current.y += (pointer.current.y - ring.current.y) * 0.18;
-      dot.style.transform = `translate3d(${pointer.current.x - 4}px, ${pointer.current.y - 4}px, 0)`;
-      ringEl.style.transform = `translate3d(${ring.current.x - 22}px, ${ring.current.y - 22}px, 0)`;
+      ring.current.x += (pointer.current.x - ring.current.x) * 0.14;
+      ring.current.y += (pointer.current.y - ring.current.y) * 0.14;
+      dot.style.transform = `translate3d(${pointer.current.x - 3}px, ${pointer.current.y - 3}px, 0)`;
+      ringEl.style.transform = `translate3d(${ring.current.x - 18}px, ${ring.current.y - 18}px, 0)`;
       frame.current = window.requestAnimationFrame(render);
     };
 
@@ -36,8 +36,7 @@ export default function CustomCursor() {
 
     const handleOver = (event: PointerEvent) => {
       const target = event.target as HTMLElement | null;
-      const hovering = Boolean(target?.closest(hoverSelector));
-      ringEl.classList.toggle("is-hovering", hovering);
+      ringEl.classList.toggle("is-hovering", Boolean(target?.closest(hoverSelector)));
     };
 
     window.addEventListener("pointermove", handleMove, { passive: true });
@@ -45,7 +44,7 @@ export default function CustomCursor() {
     frame.current = window.requestAnimationFrame(render);
 
     return () => {
-      document.body.classList.remove("lux-cursor-active");
+      document.body.classList.remove("lux-cursor-visual");
       window.cancelAnimationFrame(frame.current);
       window.removeEventListener("pointermove", handleMove);
       window.removeEventListener("pointerover", handleOver);

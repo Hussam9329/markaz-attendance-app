@@ -96,7 +96,7 @@ export default async function AdminHomePage() {
           <h2>تسجيل الحضور</h2>
           <p>افتح QR أو أدخل الحضور اليدوي للطاقم والحالات الخاصة.</p>
           <div className="lane-actions">
-            <a href="/" target="_blank" className="btn btn-primary btn-sm">📱 ماسح QR</a>
+            <a href="/scan" target="_blank" className="btn btn-primary btn-sm">📱 ماسح QR</a>
             <a href="/admin/attendance" className="btn btn-secondary btn-sm">✍️ إدخال يدوي</a>
           </div>
         </article>

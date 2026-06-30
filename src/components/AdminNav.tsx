@@ -43,7 +43,7 @@ export default function AdminNav() {
       </nav>
 
       <div className="sidebar-footer">
-        <Link href="/" target="_blank" className="btn" style={{ marginBottom: "8px" }}>
+        <Link href="/scan" target="_blank" className="btn" style={{ marginBottom: "8px" }}>
           <span className="nav-icon">📱</span>
           واجهة مسح QR
         </Link>

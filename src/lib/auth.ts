@@ -46,7 +46,7 @@ export async function isAdmin() {
 
 export async function requireAdmin() {
   if (!(await isAdmin())) {
-    redirect("/admin/login");
+    redirect("/");
   }
 }
 

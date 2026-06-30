@@ -111,7 +111,7 @@ export default function Scanner({ centerName }: { centerName: string }) {
           )}
         </div>
       <div className="scanner-actions">
-          <a className="btn btn-secondary" href="/admin/login">دخول الإدارة</a>
+          <a className="btn btn-secondary" href="/">دخول الإدارة</a>
           <span>يعمل مع ملفات الموظفين والرواتب داخل لوحة التحكم</span>
         </div>
       </section>
