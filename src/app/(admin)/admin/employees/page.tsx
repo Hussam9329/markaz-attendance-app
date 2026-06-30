@@ -341,7 +341,7 @@ export default async function EmployeesPage() {
                 <div className="form-row">
                   <div className="form-group">
                     <label className="form-label">الكود</label>
-                    <input className="form-input" name="employee_code" defaultValue={emp.employee_code} readOnly style={{ background: "#f0f4ff", cursor: "not-allowed" }} />
+                    <input className="form-input employee-code-readonly" name="employee_code" defaultValue={emp.employee_code} readOnly />
                     <span className="form-help">يتولد تلقائياً ولا يُعدّل يدوياً حتى يبقى QR ثابت.</span>
                   </div>
                   <div className="form-group">

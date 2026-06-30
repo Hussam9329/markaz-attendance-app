@@ -180,7 +180,7 @@ export default async function EmployeeDetailPage({
               <input type="hidden" name="id" value={emp.id} />
               <input type="hidden" name="employee_type" value={emp.employee_type} />
               <PayrollPresetSelect defaultPreset="custom" />
-              <div className="form-group"><label className="form-label">كود الموظف</label><input className="form-input" name="employee_code" defaultValue={emp.employee_code} readOnly style={{ background: "#f0f4ff", cursor: "not-allowed" }} /><span className="form-help">كود تلقائي مرتبط بالـ QR ولا يُغيّر يدوياً.</span></div>
+              <div className="form-group"><label className="form-label">كود الموظف</label><input className="form-input employee-code-readonly" name="employee_code" defaultValue={emp.employee_code} readOnly /><span className="form-help">كود تلقائي مرتبط بالـ QR ولا يُغيّر يدوياً.</span></div>
               <div className="form-group"><label className="form-label">الاسم</label><input className="form-input" name="name" defaultValue={emp.name} required /><span className="form-help">الاسم المعتمد في الحضور وكشف الراتب.</span></div>
               <div className="form-group"><label className="form-label">القسم</label><input className="form-input" name="department" defaultValue={emp.department} /><span className="form-help">لترتيب الموظفين حسب القسم داخل القوائم.</span></div>
               <div className="form-group"><label className="form-label">الوظيفة</label><input className="form-input" name="job_title" defaultValue={emp.job_title} /><span className="form-help">مثال: مصحح، مدرب، حسابات.</span></div>
