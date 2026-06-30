@@ -4832,3 +4832,85 @@ td {
     display: none !important;
   }
 }
+
+/* ═══════════════════════════════════════════
+   V8 CURSOR FIX — premium visual cursor, no scroll/control side effects
+   ═══════════════════════════════════════════ */
+@media (hover: hover) and (pointer: fine) {
+  body.lux-cursor-soft,
+  body.lux-cursor-soft * {
+    cursor: revert !important;
+  }
+
+  .lux-cursor-dot,
+  .lux-cursor-ring {
+    position: fixed !important;
+    inset-inline-start: 0 !important;
+    top: 0 !important;
+    pointer-events: none !important;
+    user-select: none !important;
+    border-radius: 999px !important;
+    z-index: 2147483000 !important;
+    opacity: 0 !important;
+    mix-blend-mode: normal !important;
+    backdrop-filter: none !important;
+    will-change: transform, opacity !important;
+  }
+
+  .lux-cursor-dot {
+    width: 4px !important;
+    height: 4px !important;
+    background: rgba(226, 246, 255, 0.78) !important;
+    box-shadow: 0 0 10px rgba(34, 211, 238, 0.34) !important;
+    transition: opacity 120ms ease, transform 70ms linear !important;
+  }
+
+  .lux-cursor-ring {
+    width: 26px !important;
+    height: 26px !important;
+    border: 1px solid rgba(125, 211, 252, 0.22) !important;
+    background: radial-gradient(circle, rgba(34, 211, 238, 0.06), rgba(34, 211, 238, 0) 68%) !important;
+    box-shadow: 0 0 18px rgba(14, 165, 233, 0.10) !important;
+    transition:
+      opacity 140ms ease,
+      transform 120ms ease-out,
+      border-color 150ms ease,
+      background 150ms ease,
+      box-shadow 150ms ease !important;
+  }
+
+  body.lux-cursor-ready:not(.lux-cursor-left):not(.lux-cursor-quiet) .lux-cursor-dot {
+    opacity: 0.38 !important;
+  }
+
+  body.lux-cursor-ready:not(.lux-cursor-left):not(.lux-cursor-quiet) .lux-cursor-ring {
+    opacity: 0.48 !important;
+  }
+
+  body.lux-cursor-ready:not(.lux-cursor-left):not(.lux-cursor-quiet) .lux-cursor-ring.is-hovering {
+    opacity: 0.66 !important;
+    border-color: rgba(165, 243, 252, 0.42) !important;
+    background: radial-gradient(circle, rgba(34, 211, 238, 0.10), rgba(34, 211, 238, 0) 72%) !important;
+    box-shadow: 0 0 20px rgba(34, 211, 238, 0.14) !important;
+    scale: 1.08 !important;
+  }
+
+  body.lux-cursor-pressed:not(.lux-cursor-quiet) .lux-cursor-ring {
+    opacity: 0.72 !important;
+    scale: 0.92 !important;
+  }
+
+  body.lux-cursor-quiet .lux-cursor-dot,
+  body.lux-cursor-quiet .lux-cursor-ring,
+  body.lux-cursor-left .lux-cursor-dot,
+  body.lux-cursor-left .lux-cursor-ring {
+    opacity: 0 !important;
+  }
+}
+
+@media (hover: none), (pointer: coarse), (max-width: 900px) {
+  .lux-cursor-dot,
+  .lux-cursor-ring {
+    display: none !important;
+  }
+}

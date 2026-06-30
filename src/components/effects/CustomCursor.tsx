@@ -2,59 +2,94 @@
 
 import { useEffect, useRef } from "react";
 
-const hoverSelector = "a, button, summary, input, select, textarea, [data-cursor-hover='true']";
+const interactiveSelector = [
+  "a[href]",
+  "button:not(:disabled)",
+  "summary",
+  "[role='button']",
+  "[data-cursor-hover='true']",
+  ".btn",
+].join(", ");
+
+const quietSelector = [
+  "input",
+  "select",
+  "textarea",
+  "[contenteditable='true']",
+  "[data-cursor-quiet='true']",
+  ".html5-qrcode-element",
+].join(", ");
 
 export default function CustomCursor() {
   const dotRef = useRef<HTMLDivElement | null>(null);
-  const ringRef = useRef<HTMLDivElement | null>(null);
-  const pointer = useRef({ x: -100, y: -100 });
-  const ring = useRef({ x: -100, y: -100 });
-  const frame = useRef(0);
+  const haloRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
-    const supportsFinePointer = window.matchMedia("(pointer: fine)").matches;
+    const canEnhanceCursor = window.matchMedia("(hover: hover) and (pointer: fine)").matches;
     const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    if (!supportsFinePointer || prefersReducedMotion) return;
+    if (!canEnhanceCursor || prefersReducedMotion) return;
 
     const dot = dotRef.current;
-    const ringEl = ringRef.current;
-    if (!dot || !ringEl) return;
+    const halo = haloRef.current;
+    if (!dot || !halo) return;
 
-    document.body.classList.add("lux-cursor-visual");
+    const body = document.body;
+    body.classList.add("lux-cursor-soft");
 
-    const render = () => {
-      ring.current.x += (pointer.current.x - ring.current.x) * 0.14;
-      ring.current.y += (pointer.current.y - ring.current.y) * 0.14;
-      dot.style.transform = `translate3d(${pointer.current.x - 3}px, ${pointer.current.y - 3}px, 0)`;
-      ringEl.style.transform = `translate3d(${ring.current.x - 18}px, ${ring.current.y - 18}px, 0)`;
-      frame.current = window.requestAnimationFrame(render);
+    const updateTargetState = (target: EventTarget | null) => {
+      const element = target instanceof HTMLElement ? target : null;
+      const shouldQuiet = Boolean(element?.closest(quietSelector));
+      const isInteractive = Boolean(element?.closest(interactiveSelector));
+
+      body.classList.toggle("lux-cursor-quiet", shouldQuiet);
+      halo.classList.toggle("is-hovering", !shouldQuiet && isInteractive);
     };
 
-    const handleMove = (event: PointerEvent) => {
-      pointer.current = { x: event.clientX, y: event.clientY };
+    const handlePointerMove = (event: PointerEvent) => {
+      if (event.pointerType && event.pointerType !== "mouse") return;
+
+      body.classList.add("lux-cursor-ready");
+      body.classList.remove("lux-cursor-left");
+      updateTargetState(event.target);
+
+      dot.style.transform = `translate3d(${event.clientX - 2}px, ${event.clientY - 2}px, 0)`;
+      halo.style.transform = `translate3d(${event.clientX - 13}px, ${event.clientY - 13}px, 0)`;
     };
 
-    const handleOver = (event: PointerEvent) => {
-      const target = event.target as HTMLElement | null;
-      ringEl.classList.toggle("is-hovering", Boolean(target?.closest(hoverSelector)));
-    };
+    const handlePointerOver = (event: PointerEvent) => updateTargetState(event.target);
+    const handlePointerDown = () => body.classList.add("lux-cursor-pressed");
+    const handlePointerUp = () => body.classList.remove("lux-cursor-pressed");
+    const handlePointerLeave = () => body.classList.add("lux-cursor-left");
+    const handlePointerEnter = () => body.classList.remove("lux-cursor-left");
 
-    window.addEventListener("pointermove", handleMove, { passive: true });
-    window.addEventListener("pointerover", handleOver, { passive: true });
-    frame.current = window.requestAnimationFrame(render);
+    window.addEventListener("pointermove", handlePointerMove, { passive: true });
+    window.addEventListener("pointerover", handlePointerOver, { passive: true });
+    window.addEventListener("pointerdown", handlePointerDown, { passive: true });
+    window.addEventListener("pointerup", handlePointerUp, { passive: true });
+    document.documentElement.addEventListener("mouseleave", handlePointerLeave, { passive: true });
+    document.documentElement.addEventListener("mouseenter", handlePointerEnter, { passive: true });
 
     return () => {
-      document.body.classList.remove("lux-cursor-visual");
-      window.cancelAnimationFrame(frame.current);
-      window.removeEventListener("pointermove", handleMove);
-      window.removeEventListener("pointerover", handleOver);
+      body.classList.remove(
+        "lux-cursor-soft",
+        "lux-cursor-ready",
+        "lux-cursor-quiet",
+        "lux-cursor-pressed",
+        "lux-cursor-left",
+      );
+      window.removeEventListener("pointermove", handlePointerMove);
+      window.removeEventListener("pointerover", handlePointerOver);
+      window.removeEventListener("pointerdown", handlePointerDown);
+      window.removeEventListener("pointerup", handlePointerUp);
+      document.documentElement.removeEventListener("mouseleave", handlePointerLeave);
+      document.documentElement.removeEventListener("mouseenter", handlePointerEnter);
     };
   }, []);
 
   return (
     <>
       <div ref={dotRef} aria-hidden="true" className="lux-cursor-dot" />
-      <div ref={ringRef} aria-hidden="true" className="lux-cursor-ring" />
+      <div ref={haloRef} aria-hidden="true" className="lux-cursor-ring" />
     </>
   );
 }
